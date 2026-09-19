@@ -2,12 +2,7 @@
 74922567524d9d32be9c5a136a4dd29fb4eee2083391bfa0c9a8454780960b37  RELEASE_NOTES.md
 50934d9be3dad227433837d6a0a19ef60b20b31652c4db27b05c5f2ac395dc8a  install.sh
 e77bdd0fb463e0a2a6a02a4d281fdd86463a97ef212bfd0693841b58d5d42cb7  linux-amd64/cakebox-0.1.0-linux-amd64
-718d59325d3d145b58df9df4c575bc93e14a4022b88db6d1ccb12042946fe4cc  linux-amd64/cakebox-0.1.4-linux-amd64
+0095fb0404bde6710452e75be1718f7d2d3c5df4525d7ad91d64406c2ca89cdf  linux-amd64/cakebox-0.1.4-linux-amd64
 0edbbc054c1c8c3e20415c5798220fcbaa3f0e4f5a7ce4ea0ce2f0aea8243b6b  linux-amd64/cakebox-noise-0.1.0-linux-amd64
-c7d182031b482e1648ce38c2f869d197e4b9e42831de8eb3354a2d0d6032df39  linux-amd64/cakebox-noise-0.1.4-linux-amd64
+c27b4c0d004f547435ef252cbb3a2337ea2dc22038388bbfa3196b6af644d641  linux-amd64/cakebox-noise-0.1.4-linux-amd64
 041982d8b01e572a4125ccb63bfc00330fe193222da88d6dba2d8b3857bd1d6b  linux-amd64/cakebox-sidecar-requirement-0.1.4-linux-amd64.json
-4be16c9c8a0f0673517a3bf43bc7782687ad1df2cfb1547088e64e71977aed4e  windows/cakebox-0.1.0-windows.exe
-86ef831a8a0607460717b620118b5a32510b94d765871cf2d4388b9da010a429  windows/cakebox-0.1.0-windows.exe.sha256
-8812150af2938b280a78931a6ede029db906cb020daf579fbfda2eec67379102  windows/cakebox-noise-0.1.0-windows-stable.manifest.json
-63beb17788651d77e4127d51d532f6428ae5024a0af6aeac2286efc06b6cf09e  windows/cakebox-noise-0.1.0-windows.exe
-0e427537820ff483abd7920770a3fb0138b703e5565f38ed556c3857ea5d1524  windows/cakebox-noise-0.1.0-windows.exe.sha256
