@@ -8,7 +8,7 @@ CakeBox 是 HashCake 的矿场端客户端。它部署在矿机所在网络中�
 
 ## 首次安装
 
-在 Linux amd64 服务器上执行：
+在 Linux 服务器上执行（脚本会自动识别 CPU 架构；当前提供 amd64 与 arm64 产物）：
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
@@ -54,8 +54,8 @@ sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash ins
 Windows amd64 版本可在 Release 页面下载：
 
 ```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.4/cakebox-0.1.4-windows.exe
-https://github.com/hashultra/cakebox/releases/download/v0.1.4/cakebox-noise-0.1.4-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.5/cakebox-0.1.5-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.5/cakebox-noise-0.1.5-windows.exe
 ```
 
 ## 默认路径
@@ -70,7 +70,7 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.4/cakebox-noise-0.1.
 
 ## 环境变量
 
-- `CAKEBOX_VERSION=v0.1.0`：安装指定版本，默认从 `linux-amd64/` 文件夹选择最新版本。
+- `CAKEBOX_VERSION=v0.1.0`：安装指定版本，默认从 `linux-arm64/` 文件夹选择最新版本。
 - `CAKEBOX_RELEASE_BRANCH=main`：读取发布文件的 Git 分支。
 - `CAKEBOX_TOKEN='...'`：安装时写入隧道加密令牌。
 - `CAKEBOX_DOWNLOAD_URL=https://...`：从指定地址下载主程序。
@@ -83,11 +83,12 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.4/cakebox-noise-0.1.
 
 ## 发布文件
 
-- `linux-amd64/cakebox-0.1.4-linux-amd64`：linux-amd64 主程序。
-- `linux-amd64/cakebox-noise-0.1.4-linux-amd64`：站点混淆/噪声辅助组件。
-- `linux-amd64/cakebox-sidecar-requirement-0.1.4-linux-amd64.json`：sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- `linux-amd64/cakebox-noise-0.1.4-linux-amd64-stable.manifest.json`：可选的 stable 通道签名升级 manifest，只有设置 `CAKEBOX_NOISE_UPDATE_SIGNING_KEY_HEX` 时生成。
-- `linux-amd64/cakebox-noise-0.1.4-linux-amd64-canary.manifest.json`：可选的 canary 通道签名升级 manifest，设置 `CAKEBOX_NOISE_UPDATE_CHANNEL=canary` 时生成。
+- \`linux-amd64/cakebox-0.1.5-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
+- \`linux-amd64/cakebox-noise-0.1.5-linux-amd64\`：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
+- \`linux-amd64/cakebox-sidecar-requirement-0.1.5-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-arm64/cakebox-0.1.5-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- \`linux-arm64/cakebox-noise-0.1.5-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
+- \`linux-arm64/cakebox-sidecar-requirement-0.1.5-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
 - `install.sh`：仓库根目录的一键安装和管理脚本。
-- Release 资产：上传二进制文件和已生成的签名 manifest，例如 `cakebox-0.1.4-linux-amd64` 和 `cakebox-noise-0.1.4-linux-amd64`。
+- Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
