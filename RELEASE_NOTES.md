@@ -1,14 +1,14 @@
-# CakeBox v0.1.4
+# CakeBox v0.1.5
 
-本版本提供 CakeBox 矿场端 linux-amd64 发布包。
+本版本提供以下平台的 CakeBox 矿场端发布包：
 
-## 文件
-
-- cakebox-0.1.4-linux-amd64：CakeBox linux-amd64 主程序。
-- cakebox-noise-0.1.4-linux-amd64：站点混淆/噪声辅助组件。
-- cakebox-sidecar-requirement-0.1.4-linux-amd64.json：本次 CakeBox 固化的 sing-box 平台、版本、官方 archive 与 binary SHA-256 契约。
-
-Release 资产包含二进制文件、sidecar requirement JSON，以及已生成的 cakebox-noise 签名升级 manifest。安装脚本位于仓库根目录 `install.sh`。
+- cakebox-0.1.5-linux-amd64：linux-amd64（x86_64 服务器） 主程序。
+- cakebox-noise-0.1.5-linux-amd64：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
+- cakebox-sidecar-requirement-0.1.5-linux-amd64.json：linux-amd64（x86_64 服务器） 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
+- cakebox-0.1.5-linux-arm64：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- cakebox-noise-0.1.5-linux-arm64：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
+- cakebox-sidecar-requirement-0.1.5-linux-arm64.json：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
+Release 资产包含二进制文件、sidecar requirement JSON，以及已生成的 cakebox-noise 签名升级 manifest。安装脚本位于仓库根目录 `install.sh`，会自动识别当前主机的 CPU 架构。
 
 ## 安装
 

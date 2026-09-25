@@ -304,20 +304,87 @@ download_repo_file() {
   fi
 }
 
+# 发布仓库里当前平台目录的状态。三种结果必须分开，因为处置方式完全不同：
+#   ok          —— 目录存在，可以继续枚举资产名；
+#   missing     —— HTTP 404：该 CPU 架构**没有**官方发布。这是永久性的，重试或换网络
+#                  都不会改变结果，只能换来源（自编译 / 自定义下载 / 换 amd64 主机）；
+#   unreachable —— 网络不可达、超时、限流或 5xx：瞬时故障，可以稍后重试。
+# 旧实现把这三件事混进一个命令替换里：asset_name_for_version 的 die 只结束了子 shell，
+# 调用方紧接着又按「GitHub API 不可达」重复 die 一次，用户同时看到 curl 的 404 和一句
+# 错误的限流提示，无法判断真正的失败原因（Armbian/aarch64 装机实测）。
+release_platform_state() {
+  local url="https://api.github.com/repos/${RELEASE_REPO}/contents/${RELEASE_PLATFORM}?ref=${RELEASE_BRANCH}"
+  local args=(-s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30)
+  local status=""
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  elif [ -n "${GH_TOKEN:-}" ]; then
+    args+=(-H "Authorization: Bearer ${GH_TOKEN}")
+  fi
+  status="$(curl "${args[@]}" "${url}" 2>/dev/null)" || status=""
+  case "${status}" in
+    200) printf 'ok' ;;
+    404) printf 'missing' ;;
+    *) printf 'unreachable' ;;
+  esac
+}
+
+can_build_from_source() {
+  [ -f "${SOURCE_ROOT}/Cargo.toml" ] && command -v cargo >/dev/null 2>&1
+}
+
+# 只有「官方 Release 下载」这一条路时才把平台缺失/不可达当致命错误；源码或自定义
+# 来源可用时留给 download_* 返回 1 回退，不能在这里终止。
+uses_official_release_download() {
+  [ -z "${CAKEBOX_BIN_SOURCE:-}" ] && [ -z "${CAKEBOX_DOWNLOAD_URL:-}" ] && can_download_release
+}
+
+# 平台没有官方发布时的统一提示：fail-closed，并且只说这一件事。
+die_no_release_for_platform() {
+  local prefix="$1"
+  printf '%s\n' "${red}错误:${reset} ${RELEASE_REPO} 没有 ${RELEASE_PLATFORM} 平台的 ${prefix} 发布文件" >&2
+  printf '%s\n' "       本机平台: $(uname -s)/$(uname -m)；发布目录: https://github.com/${RELEASE_REPO}/tree/${RELEASE_BRANCH}/${RELEASE_PLATFORM}" >&2
+  printf '%s\n' "       该 CPU 架构目前没有官方预编译产物，重试或换网络都不会改变结果。可选用:" >&2
+  printf '%s\n' "         1. 改用官方已有产物的主机（linux-amd64 / linux-arm64）；" >&2
+  printf '%s\n' "         2. 自行编译后指定本地产物：" >&2
+  printf '%s\n' "            sudo CAKEBOX_BIN_SOURCE=/path/to/cakebox CAKEBOX_NOISE_BIN_SOURCE=/path/to/cakebox-noise bash install.sh install" >&2
+  printf '%s\n' "         3. 指向其它已发布该架构的来源（须同时给出 SHA-256）：" >&2
+  printf '%s\n' "            CAKEBOX_DOWNLOAD_URL=https://... CAKEBOX_DOWNLOAD_SHA256=<64hex>" >&2
+  printf '%s\n' "            CAKEBOX_NOISE_DOWNLOAD_URL=https://... CAKEBOX_NOISE_DOWNLOAD_SHA256=<64hex>" >&2
+  exit 1
+}
+
+# 官方 Release 是唯一可用来源时，先确认平台目录存在再动手，否则会在装好主程序后
+# 卡在混淆组件，留下半成品安装（is_installed 会把下次安装挡在「已安装」上）。
+require_release_platform_available() {
+  local prefix="$1" state
+  state="$(release_platform_state)"
+  case "${state}" in
+    missing) die_no_release_for_platform "${prefix}" ;;
+    unreachable)
+      die "无法访问 GitHub API（网络不可达或已限流），无法确认 ${prefix} 的 ${RELEASE_PLATFORM} 发布资产；请稍后重试、指定 CAKEBOX_VERSION，或改用 CAKEBOX_DOWNLOAD_URL"
+      ;;
+  esac
+}
+
+# 返回 0 并输出资产名；无法解析时返回 1（不 die）。诊断信息由调用方依据
+# release_platform_state 给出——命令替换是子 shell，在这里 die 只会静默结束子 shell
+# 并让调用方重复报错。
 asset_name_for_version() {
   local prefix="$1"
   if [ "${RELEASE_TAG}" != "latest" ]; then
     printf '%s-%s-%s' "${prefix}" "${RELEASE_TAG#v}" "${RELEASE_PLATFORM}"
-    return
+    return 0
   fi
-  command -v curl >/dev/null 2>&1 || die "缺少 curl，无法查询 latest Release"
-  local name
-  name="$(github_api_get "https://api.github.com/repos/${RELEASE_REPO}/contents/${RELEASE_PLATFORM}?ref=${RELEASE_BRANCH}" \
+  command -v curl >/dev/null 2>&1 || return 1
+  local name listing
+  listing="$(github_api_get "https://api.github.com/repos/${RELEASE_REPO}/contents/${RELEASE_PLATFORM}?ref=${RELEASE_BRANCH}" 2>/dev/null)" || listing=""
+  name="$(printf '%s\n' "${listing}" \
     | sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
     | grep -E "^${prefix}-[0-9][0-9A-Za-z._-]*-${RELEASE_PLATFORM}$" \
     | sort -V \
     | tail -n 1)"
-  [ -n "${name}" ] || die "无法在 ${RELEASE_REPO}/${RELEASE_PLATFORM} 找到 ${prefix} 的发布文件；可改用 CAKEBOX_DOWNLOAD_URL"
+  [ -n "${name}" ] || return 1
   printf '%s' "${name}"
 }
 
@@ -398,8 +465,8 @@ download_cakebox() {
   if [ -z "${url}" ]; then
     can_download_release || return 1
     local asset expected
-    asset="$(asset_name_for_version cakebox)" \
-      || die "无法解析 cakebox 发布资产名（GitHub API 不可达或已限流），请稍后重试或指定 CAKEBOX_VERSION"
+    resolve_release_asset cakebox || return 1
+    asset="${RELEASE_ASSET}"
     log "下载 cakebox 二进制：github.com/${RELEASE_REPO}/${RELEASE_PLATFORM}/${asset}"
     # `$( )` 是子 shell，被调函数里的 `die` 只结束子 shell、结束不了安装器，
     # 所以这里必须显式接住退出码。具体原因（SHA256SUMS 取不到 / 无该条目）
@@ -431,6 +498,36 @@ download_cakebox() {
   return 0
 }
 
+# 解析官方 Release 资产名到全局 RELEASE_ASSET。
+#
+# 失败时必须按 release_platform_state 的结果分开诊断：目录 404 是「该 CPU 架构没有
+# 官方发布」（永久性），网络失败是「稍后重试」。旧实现两种情况共用一句「GitHub API
+# 不可达或已限流」，Armbian/aarch64 用户因此看到 curl 的 404 加一句错误的限流提示。
+#
+# 诊断必须在**调用方**做：命令替换是子 shell，里面的 die 只结束子 shell，传不出来。
+resolve_release_asset() {
+  local prefix="$1" state
+  RELEASE_ASSET=""
+  if RELEASE_ASSET="$(asset_name_for_version "${prefix}")" && [ -n "${RELEASE_ASSET}" ]; then
+    return 0
+  fi
+  RELEASE_ASSET=""
+  state="$(release_platform_state)"
+  case "${state}" in
+    missing)
+      can_build_from_source || die_no_release_for_platform "${prefix}"
+      warn "${RELEASE_REPO}/${RELEASE_PLATFORM} 没有 ${prefix} 的官方发布文件；改为从源码构建"
+      return 1
+      ;;
+    ok)
+      die "${RELEASE_REPO}/${RELEASE_PLATFORM} 目录里没有 ${prefix} 的发布文件；请稍后重试或指定 CAKEBOX_VERSION"
+      ;;
+    *)
+      die "无法解析 ${prefix} 发布资产名（GitHub API 不可达或已限流），请稍后重试或指定 CAKEBOX_VERSION"
+      ;;
+  esac
+}
+
 # 与 download_cakebox 同构：被 `if download_noise; then` 调用，函数体内 -e 失效，
 # 必须逐步显式判错；官方来源强制 SHA-256 校验且 fail-closed。
 download_noise() {
@@ -441,8 +538,8 @@ download_noise() {
   if [ -z "${url}" ]; then
     can_download_release || return 1
     local asset expected
-    asset="$(asset_name_for_version cakebox-noise)" \
-      || die "无法解析 cakebox-noise 发布资产名（GitHub API 不可达或已限流），请稍后重试或指定 CAKEBOX_VERSION"
+    resolve_release_asset cakebox-noise || return 1
+    asset="${RELEASE_ASSET}"
     log "下载 cakebox-noise 二进制：github.com/${RELEASE_REPO}/${RELEASE_PLATFORM}/${asset}"
     # 同上：命令替换是子 shell，`die` 传不出来，必须显式接住退出码。
     expected="$(repo_asset_sha256 "${RELEASE_PLATFORM}/${asset}")" \
@@ -506,6 +603,13 @@ install_binary() {
     ok "已安装二进制 ${BIN_PATH}"
     install_noise_binary
     return
+  fi
+
+  # 官方 Release 是唯一来源时，先把「本平台到底有没有发布」问清楚再动手写任何文件。
+  # 否则一旦只是缺 linux-arm64 目录，就会走到 download_* 的 return 1，最终以「不在源码
+  # 仓库内」这类与真正原因无关的信息收场。这里 fail-closed，并给出可操作的替代方案。
+  if uses_official_release_download && ! can_build_from_source; then
+    require_release_platform_available cakebox
   fi
 
   if download_cakebox; then

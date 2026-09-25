@@ -1,8 +1,14 @@
-9dad145896e450235b28b563bdb0f6afcc273f88b430cb27702f60914572f140  README.md
-74922567524d9d32be9c5a136a4dd29fb4eee2083391bfa0c9a8454780960b37  RELEASE_NOTES.md
-50934d9be3dad227433837d6a0a19ef60b20b31652c4db27b05c5f2ac395dc8a  install.sh
+bec84f1113e5f0cbeb3076f81c203742401c02782ff448a774a6ff4a3d15cbc5  README.md
+381054b55e1228e4bdf5b854fe37812f1974e8685ce6fff1003579434a75aab0  RELEASE_NOTES.md
+dba0860d05d7a9a086c60e8b212454c2697724efc88d07d870e0c1f0f9237664  install.sh
 e77bdd0fb463e0a2a6a02a4d281fdd86463a97ef212bfd0693841b58d5d42cb7  linux-amd64/cakebox-0.1.0-linux-amd64
 0095fb0404bde6710452e75be1718f7d2d3c5df4525d7ad91d64406c2ca89cdf  linux-amd64/cakebox-0.1.4-linux-amd64
+0095fb0404bde6710452e75be1718f7d2d3c5df4525d7ad91d64406c2ca89cdf  linux-amd64/cakebox-0.1.5-linux-amd64
 0edbbc054c1c8c3e20415c5798220fcbaa3f0e4f5a7ce4ea0ce2f0aea8243b6b  linux-amd64/cakebox-noise-0.1.0-linux-amd64
 c27b4c0d004f547435ef252cbb3a2337ea2dc22038388bbfa3196b6af644d641  linux-amd64/cakebox-noise-0.1.4-linux-amd64
+e979d3177d4b5e600ac185c5947fbea44c8c098f7b216da864ed8c710665966e  linux-amd64/cakebox-noise-0.1.5-linux-amd64
 041982d8b01e572a4125ccb63bfc00330fe193222da88d6dba2d8b3857bd1d6b  linux-amd64/cakebox-sidecar-requirement-0.1.4-linux-amd64.json
+041982d8b01e572a4125ccb63bfc00330fe193222da88d6dba2d8b3857bd1d6b  linux-amd64/cakebox-sidecar-requirement-0.1.5-linux-amd64.json
+16d62c59a0b571e23692556a0039997d662e0c2717fe64070ced6d9a54877e03  linux-arm64/cakebox-0.1.5-linux-arm64
+da17796e21297f5257aea80e846cddc701536aa38d86d6f4cbdb5b917506808a  linux-arm64/cakebox-noise-0.1.5-linux-arm64
+6cf7c52d89c0b6f6d959955cdcb7c8b39a6b673ff9221a7cd5ec7a14646b13d2  linux-arm64/cakebox-sidecar-requirement-0.1.5-linux-arm64.json
