@@ -49,14 +49,9 @@ sudo CAKEBOX_TOKEN='你的隧道加密令牌' bash install-cakebox.sh install-to
 sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash install-cakebox.sh replace-token
 ```
 
-## Windows 下载
+## 平台支持
 
-Windows amd64 版本可在 Release 页面下载：
-
-```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.5/cakebox-0.1.5-windows.exe
-https://github.com/hashultra/cakebox/releases/download/v0.1.5/cakebox-noise-0.1.5-windows.exe
-```
+本次 v0.1.6 提供 Linux AMD64 和 ARM64，Windows 不在本次发布范围。
 
 ## 默认路径
 
@@ -83,12 +78,12 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.5/cakebox-noise-0.1.
 
 ## 发布文件
 
-- \`linux-amd64/cakebox-0.1.5-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
-- \`linux-amd64/cakebox-noise-0.1.5-linux-amd64\`：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
-- \`linux-amd64/cakebox-sidecar-requirement-0.1.5-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`linux-arm64/cakebox-0.1.5-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- \`linux-arm64/cakebox-noise-0.1.5-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
-- \`linux-arm64/cakebox-sidecar-requirement-0.1.5-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- `linux-amd64/cakebox-0.1.6-linux-amd64`：linux-amd64（x86_64 服务器） 主程序。
+- `linux-amd64/cakebox-noise-0.1.6-linux-amd64`：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
+- `linux-amd64/cakebox-sidecar-requirement-0.1.6-linux-amd64.json`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- `linux-arm64/cakebox-0.1.6-linux-arm64`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- `linux-arm64/cakebox-noise-0.1.6-linux-arm64`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
+- `linux-arm64/cakebox-sidecar-requirement-0.1.6-linux-arm64.json`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
 - `install.sh`：仓库根目录的一键安装和管理脚本。
-- Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
+- Release 资产：两个平台的主程序、cakebox-noise 组件以及 sidecar 版本与校验信息。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
