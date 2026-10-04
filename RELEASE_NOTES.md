@@ -1,23 +1,9 @@
-# CakeBox v0.1.5
+# CakeBox v0.1.6
 
-本版本提供以下平台的 CakeBox 矿场端发布包：
+- 修复异常矿机连接长期占用接入名额，导致新矿机无法正常接入的问题。
+- 改善网络中断、后端切换和旧连接清理后的恢复，减少无效连接残留。
+- 连接清理时保留已经收到的矿机响应，避免最后一条回执丢失。
 
-- cakebox-0.1.5-linux-amd64：linux-amd64（x86_64 服务器） 主程序。
-- cakebox-noise-0.1.5-linux-amd64：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
-- cakebox-sidecar-requirement-0.1.5-linux-amd64.json：linux-amd64（x86_64 服务器） 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
-- cakebox-0.1.5-linux-arm64：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- cakebox-noise-0.1.5-linux-arm64：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
-- cakebox-sidecar-requirement-0.1.5-linux-arm64.json：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
-Release 资产包含二进制文件、sidecar requirement JSON，以及已生成的 cakebox-noise 签名升级 manifest。安装脚本位于仓库根目录 `install.sh`，会自动识别当前主机的 CPU 架构。
+本次提供 Linux AMD64 和 ARM64 的 CakeBox 主程序、配套 cakebox-noise，以及对应的 sing-box 版本与校验信息，继续使用 sing-box 1.13.12。
 
-## 安装
-
-```bash
-CAKEBOX_TOKEN='你的隧道加密令牌' bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
-```
-
-首次安装会随机生成 CakeBox Web 端口、安全访问路径和 Web访问令牌。Web 默认绑定 `0.0.0.0`，方便矿场局域网访问。
-
-## 配套项目
-
-- HashCake：https://github.com/hashultra/hashcake
+已安装用户可通过原安装器执行更新；更新前请妥善保存现有站点配置。
