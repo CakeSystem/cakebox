@@ -49,19 +49,14 @@ sudo CAKEBOX_TOKEN='你的隧道加密令牌' bash install-cakebox.sh install-to
 sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash install-cakebox.sh replace-token
 ```
 
-## 平台支持
+## Windows 下载
 
-本次 v0.1.6 提供 Linux AMD64、Linux ARM64 和 Windows x64。
+Windows amd64 版本可在 Release 页面下载：
 
-Windows 下载：
-
-- [CakeBox 主程序](https://github.com/hashultra/cakebox/releases/download/v0.1.6/cakebox-0.1.6-windows.exe)
-- [配套 cakebox-noise](https://github.com/hashultra/cakebox/releases/download/v0.1.6/cakebox-noise-0.1.6-windows.exe)
-- [sidecar 校验信息](https://github.com/hashultra/cakebox/releases/download/v0.1.6/cakebox-sidecar-requirement-0.1.6-windows.json)
-
-Linux 安装命令见上文；Windows 用户下载后可执行 `cakebox-0.1.6-windows.exe --help` 查看 Windows 可用命令。
-
-Windows 版暂不支持运行中自动替换 cakebox-noise；更新该组件时请先停止它，再手动替换为同版本的 Windows 文件。
+```text
+https://github.com/hashultra/cakebox/releases/download/v0.1.7/cakebox-0.1.7-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.7/cakebox-noise-0.1.7-windows.exe
+```
 
 ## 默认路径
 
@@ -75,7 +70,7 @@ Windows 版暂不支持运行中自动替换 cakebox-noise；更新该组件时�
 
 ## 环境变量
 
-- `CAKEBOX_VERSION=v0.1.0`：安装指定版本，默认从 `linux-arm64/` 文件夹选择最新版本。
+- `CAKEBOX_VERSION=v0.1.0`：安装指定版本，默认从 `windows-amd64/` 文件夹选择最新版本。
 - `CAKEBOX_RELEASE_BRANCH=main`：读取发布文件的 Git 分支。
 - `CAKEBOX_TOKEN='...'`：安装时写入隧道加密令牌。
 - `CAKEBOX_DOWNLOAD_URL=https://...`：从指定地址下载主程序。
@@ -88,15 +83,21 @@ Windows 版暂不支持运行中自动替换 cakebox-noise；更新该组件时�
 
 ## 发布文件
 
-- `linux-amd64/cakebox-0.1.6-linux-amd64`：linux-amd64（x86_64 服务器） 主程序。
-- `linux-amd64/cakebox-noise-0.1.6-linux-amd64`：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
-- `linux-amd64/cakebox-sidecar-requirement-0.1.6-linux-amd64.json`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- `linux-arm64/cakebox-0.1.6-linux-arm64`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- `linux-arm64/cakebox-noise-0.1.6-linux-arm64`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
-- `linux-arm64/cakebox-sidecar-requirement-0.1.6-linux-arm64.json`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- `windows/cakebox-0.1.6-windows.exe`：Windows x64 主程序。
-- `windows/cakebox-noise-0.1.6-windows.exe`：Windows x64 配套组件。
-- `windows/cakebox-sidecar-requirement-0.1.6-windows.json`：Windows sidecar 版本与校验信息。
-- `install.sh`：仓库根目录的 Linux 一键安装和管理脚本。
-- Release 资产：三个平台的主程序、cakebox-noise 组件以及 sidecar 版本与校验信息。
+- \`linux-amd64/cakebox-0.1.7-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
+- \`linux-amd64/cakebox-noise-0.1.7-linux-amd64\`：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
+- \`linux-amd64/cakebox-sidecar-requirement-0.1.7-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-arm64/cakebox-0.1.7-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- \`linux-arm64/cakebox-noise-0.1.7-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
+- \`linux-arm64/cakebox-sidecar-requirement-0.1.7-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`windows/cakebox-0.1.7-windows.exe\`：Windows x64 主程序。
+- \`windows/cakebox-noise-0.1.7-windows.exe\`：Windows x64 的站点混淆/噪声辅助组件。
+- \`windows/cakebox-sidecar-requirement-0.1.7-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- `install.sh`：仓库根目录的一键安装和管理脚本。
+- Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
+
+## Windows 运行说明
+
+Windows EXE 使用自签名证书，系统可能提示发布者不受信任；请遵循本机或组织的应用运行策略。noise 组件暂不支持运行中自动替换，更新时应先停止，再手动替换同版本文件。
+
+Linux 加密程序需要支持匿名临时执行文件的磁盘目录。容器环境应使用合适的磁盘卷，可通过 `HASHCAKE_ENVELOPE_EXEC_DIR` 指定由运行用户所有、权限为 `0700` 的执行目录。
