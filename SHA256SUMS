@@ -1,5 +1,5 @@
-4a1e34d18177d93d18009eb5be32f0bc0981da4a524bf130abca3086fc8463ba  README.md
-6a0fe0816efad77dfd3859180cbea74c68632e2b3f8ddef42381a066bdfe7a46  RELEASE_NOTES.md
+2db570f4efb16d1871d9e8aad58498368f7074ec7a6b4faf952ae2ec3ef1da5d  README.md
+ed71af150091e9b0bffd96e9b38a2b08c70b877b7e1cabf905626a46316007f5  RELEASE_NOTES.md
 dba0860d05d7a9a086c60e8b212454c2697724efc88d07d870e0c1f0f9237664  install.sh
 e77bdd0fb463e0a2a6a02a4d281fdd86463a97ef212bfd0693841b58d5d42cb7  linux-amd64/cakebox-0.1.0-linux-amd64
 0095fb0404bde6710452e75be1718f7d2d3c5df4525d7ad91d64406c2ca89cdf  linux-amd64/cakebox-0.1.4-linux-amd64
@@ -18,3 +18,6 @@ da17796e21297f5257aea80e846cddc701536aa38d86d6f4cbdb5b917506808a  linux-arm64/ca
 dc46cf05bd40ce101ace9dc3c9b37d46d6a76e2134a96036f2711744cf26b61b  linux-arm64/cakebox-noise-0.1.6-linux-arm64
 6cf7c52d89c0b6f6d959955cdcb7c8b39a6b673ff9221a7cd5ec7a14646b13d2  linux-arm64/cakebox-sidecar-requirement-0.1.5-linux-arm64.json
 6cf7c52d89c0b6f6d959955cdcb7c8b39a6b673ff9221a7cd5ec7a14646b13d2  linux-arm64/cakebox-sidecar-requirement-0.1.6-linux-arm64.json
+d74caf8c3a5b03f49f46bd5dd715a27f7941a65b22d4bfd5110397f9e49e1551  windows/cakebox-0.1.6-windows.exe
+07cf1c928d57c411d51872f25b20c977e8328de0cd005531a38e05b6dc48cdc2  windows/cakebox-noise-0.1.6-windows.exe
+0873d489e7c438c117cbee004de633163b07955505df10aba03c94856b338aea  windows/cakebox-sidecar-requirement-0.1.6-windows.json
