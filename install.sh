@@ -13,7 +13,6 @@ LOG_DIR="${CAKEBOX_LOG_DIR:-${INSTALL_DIR}/logs}"
 BACKUP_DIR="${CAKEBOX_BACKUP_DIR:-${INSTALL_DIR}/backup}"
 BIN_PATH="${INSTALL_DIR}/cakebox"
 INSTALL_ENV="${STATE_DIR}/install.env"
-NOISE_PATH="${CAKEBOX_NOISE_PATH:-${INSTALL_DIR}/cakebox-noise}"
 SIDECAR_PATH="${CAKEBOX_SIDECAR_PATH:-${INSTALL_DIR}/factory-telemetry-agent}"
 LISTEN_PORT="${CAKEBOX_LISTEN_PORT:-18082}"
 WEB_BIND="${CAKEBOX_WEB_BIND:-}"
@@ -79,7 +78,7 @@ need_root() {
 }
 
 reject_space_path() {
-  case "${INSTALL_DIR}${STATE_DIR}${LOG_DIR}${BIN_PATH}${NOISE_PATH}${SIDECAR_PATH}" in
+  case "${INSTALL_DIR}${STATE_DIR}${LOG_DIR}${BIN_PATH}${SIDECAR_PATH}" in
     *[[:space:]]*) die "安装路径不能包含空格：${INSTALL_DIR}" ;;
   esac
 }
@@ -347,10 +346,9 @@ die_no_release_for_platform() {
   printf '%s\n' "       该 CPU 架构目前没有官方预编译产物，重试或换网络都不会改变结果。可选用:" >&2
   printf '%s\n' "         1. 改用官方已有产物的主机（linux-amd64 / linux-arm64）；" >&2
   printf '%s\n' "         2. 自行编译后指定本地产物：" >&2
-  printf '%s\n' "            sudo CAKEBOX_BIN_SOURCE=/path/to/cakebox CAKEBOX_NOISE_BIN_SOURCE=/path/to/cakebox-noise bash install.sh install" >&2
+  printf '%s\n' "            sudo CAKEBOX_BIN_SOURCE=/path/to/cakebox bash install.sh install" >&2
   printf '%s\n' "         3. 指向其它已发布该架构的来源（须同时给出 SHA-256）：" >&2
   printf '%s\n' "            CAKEBOX_DOWNLOAD_URL=https://... CAKEBOX_DOWNLOAD_SHA256=<64hex>" >&2
-  printf '%s\n' "            CAKEBOX_NOISE_DOWNLOAD_URL=https://... CAKEBOX_NOISE_DOWNLOAD_SHA256=<64hex>" >&2
   exit 1
 }
 
@@ -436,16 +434,9 @@ build_cakebox_binary() {
   fi
 }
 
-build_noise_binary() {
-  [ -f "${SOURCE_ROOT}/Cargo.toml" ] || return 1
-  command -v cargo >/dev/null 2>&1 || return 1
-  log "构建 cakebox-noise release 二进制"
-  cargo build --release -p cakebox-noise
-}
 
 build_binaries() {
   build_cakebox_binary
-  build_noise_binary || die "缺少 cargo 或源码，无法构建 cakebox-noise"
 }
 
 # 注意：本函数被 `if download_cakebox; then` 调用，而 bash 规定「函数在 -e 被忽略
@@ -528,71 +519,7 @@ resolve_release_asset() {
   esac
 }
 
-# 与 download_cakebox 同构：被 `if download_noise; then` 调用，函数体内 -e 失效，
-# 必须逐步显式判错；官方来源强制 SHA-256 校验且 fail-closed。
-download_noise() {
-  local url="${CAKEBOX_NOISE_DOWNLOAD_URL:-}"
-  command -v curl >/dev/null 2>&1 || die "缺少 curl，无法下载 CAKEBOX_NOISE_DOWNLOAD_URL"
-  local candidate="${NOISE_PATH}.download"
-  rm -f -- "${candidate}"
-  if [ -z "${url}" ]; then
-    can_download_release || return 1
-    local asset expected
-    resolve_release_asset cakebox-noise || return 1
-    asset="${RELEASE_ASSET}"
-    log "下载 cakebox-noise 二进制：github.com/${RELEASE_REPO}/${RELEASE_PLATFORM}/${asset}"
-    # 同上：命令替换是子 shell，`die` 传不出来，必须显式接住退出码。
-    expected="$(repo_asset_sha256 "${RELEASE_PLATFORM}/${asset}")" \
-      || die "无法取得 cakebox-noise 二进制的官方 SHA-256，已拒绝安装未经校验的二进制"
-    if ! download_repo_file "${RELEASE_PLATFORM}/${asset}" "${candidate}"; then
-      rm -f -- "${candidate}"
-      die "下载 cakebox-noise 二进制失败：${RELEASE_PLATFORM}/${asset}"
-    fi
-    require_file_sha256 "${candidate}" "${expected}" "cakebox-noise 二进制" >/dev/null
-  else
-    log "下载 cakebox-noise 二进制：${url}"
-    if ! curl -fL "${url}" -o "${candidate}"; then
-      rm -f -- "${candidate}"
-      die "下载 cakebox-noise 二进制失败：${url}"
-    fi
-    if [ -n "${CAKEBOX_NOISE_DOWNLOAD_SHA256:-}" ]; then
-      require_file_sha256 "${candidate}" "${CAKEBOX_NOISE_DOWNLOAD_SHA256}" "cakebox-noise 二进制" >/dev/null
-    else
-      log "警告：CAKEBOX_NOISE_DOWNLOAD_URL 指向自定义来源且未提供 CAKEBOX_NOISE_DOWNLOAD_SHA256，跳过完整性校验"
-    fi
-  fi
-  if ! install -m 0755 "${candidate}" "${NOISE_PATH}"; then
-    rm -f -- "${candidate}"
-    die "安装 cakebox-noise 二进制到 ${NOISE_PATH} 失败"
-  fi
-  rm -f -- "${candidate}"
-  return 0
-}
 
-install_noise_binary() {
-  local noise_src="${CAKEBOX_NOISE_BIN_SOURCE:-}"
-  if [ -n "${noise_src}" ]; then
-    [ -x "${noise_src}" ] || die "CAKEBOX_NOISE_BIN_SOURCE 不存在或不可执行：${noise_src}"
-    install -m 0755 "${noise_src}" "${NOISE_PATH}"
-    ok "已安装混淆组件 ${NOISE_PATH}"
-    return
-  fi
-  if [ -x "${SOURCE_ROOT}/target/release/cakebox-noise" ]; then
-    install -m 0755 "${SOURCE_ROOT}/target/release/cakebox-noise" "${NOISE_PATH}"
-    ok "已安装混淆组件 ${NOISE_PATH}"
-    return
-  fi
-  if download_noise; then
-    ok "已安装混淆组件 ${NOISE_PATH}"
-    return
-  fi
-  if build_noise_binary; then
-    install -m 0755 "${SOURCE_ROOT}/target/release/cakebox-noise" "${NOISE_PATH}"
-    ok "已安装混淆组件 ${NOISE_PATH}"
-    return
-  fi
-  die "无法安装 cakebox-noise；请设置 CAKEBOX_NOISE_BIN_SOURCE、CAKEBOX_NOISE_DOWNLOAD_URL，或提供源码与 cargo 环境"
-}
 
 install_binary() {
   init_release_platform
@@ -601,7 +528,6 @@ install_binary() {
     [ -x "${src}" ] || die "CAKEBOX_BIN_SOURCE 不存在或不可执行：${src}"
     install -m 0755 "${src}" "${BIN_PATH}"
     ok "已安装二进制 ${BIN_PATH}"
-    install_noise_binary
     return
   fi
 
@@ -614,15 +540,12 @@ install_binary() {
 
   if download_cakebox; then
     ok "已安装下载的二进制 ${BIN_PATH}"
-    install_noise_binary
     return
   fi
 
   build_binaries
   install -m 0755 "${SOURCE_ROOT}/target/release/cakebox" "${BIN_PATH}"
-  install -m 0755 "${SOURCE_ROOT}/target/release/cakebox-noise" "${NOISE_PATH}"
   ok "已安装二进制 ${BIN_PATH}"
-  ok "已安装混淆组件 ${NOISE_PATH}"
 }
 
 singbox_arch() {
@@ -1058,7 +981,7 @@ print_install_result() {
 
 ========== CakeBox 安装结果 ==========
 当前版本: $([ -x "${BIN_PATH}" ] && "${BIN_PATH}" --version 2>/dev/null || printf '未知')
-混淆组件: $([ -x "${NOISE_PATH}" ] && "${NOISE_PATH}" --version 2>/dev/null || printf '未安装')
+流量混淆: CakeBox 内置，在本地后台开启或关闭
 隧道 sidecar: $([ -x "${SIDECAR_PATH}" ] && sidecar_version "${SIDECAR_PATH}" || printf '未安装或版本不可识别')（要求 ${SING_BOX_VERSION}）
 CakeBox 后台地址: $(web_url)
 Web访问令牌: $([ -s "${token_file}" ] && cat "${token_file}" || printf '未生成')
@@ -1134,7 +1057,7 @@ update_service() {
 
 ========== CakeBox 更新结果 ==========
 当前版本: $([ -x "${BIN_PATH}" ] && "${BIN_PATH}" --version 2>/dev/null || printf '未知')
-混淆组件: $([ -x "${NOISE_PATH}" ] && "${NOISE_PATH}" --version 2>/dev/null || printf '未安装')
+流量混淆: CakeBox 内置，在本地后台开启或关闭
 隧道 sidecar: $([ -x "${SIDECAR_PATH}" ] && sidecar_version "${SIDECAR_PATH}" || printf '未安装或版本不可识别')（要求 ${SING_BOX_VERSION}）
 CakeBox 后台地址: $(web_url)
 安全访问路径: /${URL_PREFIX}/
@@ -1236,7 +1159,7 @@ show_paths() {
 状态目录: ${STATE_DIR}
 日志目录: ${LOG_DIR}
 二进制:   ${BIN_PATH}
-混淆组件: ${NOISE_PATH}
+流量混淆: CakeBox 内置，在本地后台开启或关闭
 Sidecar:  ${SIDECAR_PATH}
 服务名:   ${SERVICE_NAME}
 Web UI:   ${WEB_BIND:-未设置}
