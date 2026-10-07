@@ -54,8 +54,7 @@ sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash ins
 Windows amd64 版本可在 Release 页面下载：
 
 ```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.7/cakebox-0.1.7-windows.exe
-https://github.com/hashultra/cakebox/releases/download/v0.1.7/cakebox-noise-0.1.7-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.8/cakebox-0.1.8-windows.exe
 ```
 
 ## 默认路径
@@ -83,21 +82,12 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.7/cakebox-noise-0.1.
 
 ## 发布文件
 
-- \`linux-amd64/cakebox-0.1.7-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
-- \`linux-amd64/cakebox-noise-0.1.7-linux-amd64\`：linux-amd64（x86_64 服务器） 的站点混淆/噪声辅助组件。
-- \`linux-amd64/cakebox-sidecar-requirement-0.1.7-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`linux-arm64/cakebox-0.1.7-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- \`linux-arm64/cakebox-noise-0.1.7-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的站点混淆/噪声辅助组件。
-- \`linux-arm64/cakebox-sidecar-requirement-0.1.7-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`windows/cakebox-0.1.7-windows.exe\`：Windows x64 主程序。
-- \`windows/cakebox-noise-0.1.7-windows.exe\`：Windows x64 的站点混淆/噪声辅助组件。
-- \`windows/cakebox-sidecar-requirement-0.1.7-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-amd64/cakebox-0.1.8-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
+- \`linux-amd64/cakebox-sidecar-requirement-0.1.8-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-arm64/cakebox-0.1.8-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- \`linux-arm64/cakebox-sidecar-requirement-0.1.8-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`windows/cakebox-0.1.8-windows.exe\`：Windows x64 主程序。
+- \`windows/cakebox-sidecar-requirement-0.1.8-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
 - `install.sh`：仓库根目录的一键安装和管理脚本。
 - Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
-
-## Windows 运行说明
-
-Windows EXE 使用自签名证书，系统可能提示发布者不受信任；请遵循本机或组织的应用运行策略。noise 组件暂不支持运行中自动替换，更新时应先停止，再手动替换同版本文件。
-
-Linux 加密程序需要支持匿名临时执行文件的磁盘目录。容器环境应使用合适的磁盘卷，可通过 `HASHCAKE_ENVELOPE_EXEC_DIR` 指定由运行用户所有、权限为 `0700` 的执行目录。
