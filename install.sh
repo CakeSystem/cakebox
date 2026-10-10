@@ -1542,8 +1542,15 @@ menu() {
 19. 卸载
 0. 退出
 EOF
-  read -r -p "请选择 [0-19]: " choice
+  # 与 scripts/hashcake-install.sh 的 read_menu_choice 一致：EOF / 非交互输入时
+  # 直接退出，而不是把空选择当无效选择 die（进程替换、管道、自动化终端启动时
+  # stdin 可能立刻 EOF）。回车与 0 退出，主菜单保持退出语义。
+  if ! IFS= read -r -p "请选择 [0-19]: " choice; then
+    printf '\n'
+    exit 0
+  fi
   case "${choice}" in
+    0|q|Q|"") exit 0 ;;
     1) install_service ;;
     2) update_service ;;
     3) shift || true; install_token ;;
@@ -1563,7 +1570,6 @@ EOF
     17) disable_firewall ;;
     18) change_limit ;;
     19) uninstall ;;
-    0) exit 0 ;;
     *) die "无效选择" ;;
   esac
 }
