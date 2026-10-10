@@ -89,6 +89,7 @@ CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main 
 ```
 
 国内镜像的清单缓存可能滞后：安装器会在解析版本时与 GitHub 清单比对，镜像落后时按更新的版本安装，下载仍优先使用国内镜像。sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
+
 ## 发布文件
 
 - \`linux-amd64/cakebox-0.1.8-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
