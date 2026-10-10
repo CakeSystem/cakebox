@@ -22,3 +22,13 @@
 ```bash
 CAKEBOX_TOKEN='你的隧道令牌' bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
 ```
+
+## 国内服务器
+
+无法稳定访问 GitHub 的服务器使用下面的国内入口。镜像清单缓存可能滞后：安装器会与 GitHub 清单比对后按更新的版本安装，下载仍优先使用国内镜像：
+
+```bash
+CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@1e104dde75ed29548334dec3f6a6319362f3a53c/install.sh) install
+```
+
+sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
