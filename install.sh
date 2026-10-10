@@ -6,6 +6,16 @@ RELEASE_REPO="${CAKEBOX_RELEASE_REPO:-hashultra/cakebox}"
 RELEASE_TAG="${CAKEBOX_VERSION:-latest}"
 RELEASE_BRANCH="${CAKEBOX_RELEASE_BRANCH:-main}"
 RELEASE_PLATFORM="${CAKEBOX_RELEASE_PLATFORM:-}"
+RELEASE_SUMS_PATH="SHA256SUMS"
+# 默认只访问 GitHub；国内服务器在命令里显式设置 CAKEBOX_RELEASE_MIRROR_BASE。
+RELEASE_MIRROR_BASE="${CAKEBOX_RELEASE_MIRROR_BASE:-}"
+# 国内入口上一次公开的不可变提交号：国内镜像对 `@分支` 的清单有小时级缓存窗口
+# （stale-while-revalidate），而提交清单不可变，是「没有外网也要解析出版本」的最后兜底。
+INSTALLER_ANCHOR_REF="${CAKEBOX_INSTALLER_ANCHOR_REF:-55befb476ea1b474be4811549bf1b4a3e150d5a2}"
+# GitHub Release 资产（cakebox 二进制、sing-box）的代理前缀。国内镜像模式下默认
+# 使用 gh-proxy；代理与 GitHub 是同一个 URL，下载后按 SHA-256 逐字节校验，
+# 代理返回任何非预期内容都会被拒绝。
+GH_PROXY_BASE="${CAKEBOX_GH_PROXY_BASE:-}"
 SERVICE_NAME="${CAKEBOX_SERVICE:-cakebox}"
 INSTALL_DIR="${CAKEBOX_HOME:-/opt/cakebox}"
 STATE_DIR="${CAKEBOX_STATE_DIR:-${INSTALL_DIR}/state}"
@@ -22,6 +32,8 @@ ADVERTISED_IP="${CAKEBOX_ADVERTISED_IP:-}"
 URL_PREFIX="${CAKEBOX_URL_PREFIX:-}"
 START_AFTER_INSTALL="${CAKEBOX_START_AFTER_INSTALL:-1}"
 BUILD_FEATURES="${CAKEBOX_FEATURES:-}"
+# 与 HashCake 一致：默认只安装正式版；置 1 时允许把预发布版本当作最新版。
+ALLOW_PRERELEASE="${CAKEBOX_ALLOW_PRERELEASE:-0}"
 SING_BOX_VERSION="${SING_BOX_VERSION:-}"
 SING_BOX_DOWNLOAD_URL="${SING_BOX_DOWNLOAD_URL:-}"
 SING_BOX_ARCHIVE_SHA256="${SING_BOX_ARCHIVE_SHA256:-}"
@@ -279,28 +291,134 @@ web_url() {
   printf 'http://%s:%s/%s/' "${host}" "${port}" "${URL_PREFIX}"
 }
 
+# 当前可用的 GitHub 凭据（有 token 时只走 API，绝不把 Authorization 发给镜像或代理）。
+github_token_value() {
+  printf '%s' "${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+}
+
+# GitHub Release 资产（二进制、sing-box 压缩包）的下载前缀。国内镜像模式下默认
+# 走 gh-proxy：它与 GitHub 是同一个 URL，下载后仍按 SHA-256 逐字节校验，代理返回
+# 任何非预期内容都会被拒绝。
+init_release_sources() {
+  if [ -z "${GH_PROXY_BASE}" ] && [ -n "${RELEASE_MIRROR_BASE}" ]; then
+    GH_PROXY_BASE="https://gh-proxy.com/"
+  fi
+  case "${RELEASE_MIRROR_BASE}" in
+    '') ;;
+    https://*)
+      printf '%s' "${RELEASE_MIRROR_BASE}" | grep -Eq '^https://[A-Za-z0-9:/?&=._%+#~@-]+$' \
+        || die "CAKEBOX_RELEASE_MIRROR_BASE 包含不安全字符"
+      ;;
+    *) die "CAKEBOX_RELEASE_MIRROR_BASE 必须使用 https://" ;;
+  esac
+  case "${GH_PROXY_BASE}" in
+    '') ;;
+    https://*)
+      printf '%s' "${GH_PROXY_BASE}" | grep -Eq '^https://[A-Za-z0-9:/?&=._%+#~@-]+$' \
+        || die "CAKEBOX_GH_PROXY_BASE 包含不安全字符"
+      ;;
+    *) die "CAKEBOX_GH_PROXY_BASE 必须使用 https://" ;;
+  esac
+  case "${INSTALLER_ANCHOR_REF}" in
+    ''|*[!0-9A-Fa-f]*) die "CAKEBOX_INSTALLER_ANCHOR_REF 必须是十六进制提交号" ;;
+  esac
+  case "${ALLOW_PRERELEASE}" in
+    0|1) ;;
+    *) die "CAKEBOX_ALLOW_PRERELEASE 只能是 0 或 1：${ALLOW_PRERELEASE}" ;;
+  esac
+}
+
+# 单个 URL 的下载封装：GitHub API 端点额外带上 raw Accept 与凭据。
+download_url_to() {
+  local url="$1" dst="$2" token
+  local args=(-fL --connect-timeout 8 --max-time 600 --retry 2 --retry-delay 1)
+  token="$(github_token_value)"
+  if [[ "${url}" == https://api.github.com/* ]]; then
+    args+=(-H "Accept: application/vnd.github.raw")
+    [ -z "${token}" ] || args+=(-H "Authorization: Bearer ${token}")
+  fi
+  curl "${args[@]}" "${url}" -o "${dst}"
+}
+
 github_api_get() {
-  local url="$1"
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -fsSL -H "Authorization: Bearer ${GITHUB_TOKEN}" "${url}"
-  elif [ -n "${GH_TOKEN:-}" ]; then
-    curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" "${url}"
+  local url="$1" token
+  token="$(github_token_value)"
+  if [ -n "${token}" ]; then
+    curl -fsSL -H "Authorization: Bearer ${token}" "${url}"
   else
     curl -fsSL "${url}"
   fi
 }
 
+# 发布仓库文件的候选来源，按顺序尝试：
+#   1. 国内发布镜像（镜像优先，国内服务器可达）
+#   2. raw.githubusercontent.com
+#   3. api.github.com（无 token 时才作为最后一档；有 token 时只走这一档）
+# 传了 expected 时逐个候选逐字节校验，不匹配就换下一个源——镜像、raw、API
+# 三者都不被额外信任，最终写入的必须是摘要匹配的那一份。
 download_repo_file() {
-  local path="$1"
-  local dst="$2"
-  local url="https://api.github.com/repos/${RELEASE_REPO}/contents/${path}?ref=${RELEASE_BRANCH}"
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -fL -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.raw" "${url}" -o "${dst}"
-  elif [ -n "${GH_TOKEN:-}" ]; then
-    curl -fL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github.raw" "${url}" -o "${dst}"
+  local path="$1" dst="$2" expected="${3:-}" url status=0 token
+  local part="${dst}.repo-download.$$"
+  local urls=()
+  token="$(github_token_value)"
+  if [ -n "${token}" ]; then
+    urls+=("https://api.github.com/repos/${RELEASE_REPO}/contents/${path}?ref=${RELEASE_BRANCH}")
   else
-    curl -fL -H "Accept: application/vnd.github.raw" "${url}" -o "${dst}"
+    [ -z "${RELEASE_MIRROR_BASE}" ] || urls+=("${RELEASE_MIRROR_BASE%/}/${path}")
+    urls+=("https://raw.githubusercontent.com/${RELEASE_REPO}/${RELEASE_BRANCH}/${path}")
+    urls+=("https://api.github.com/repos/${RELEASE_REPO}/contents/${path}?ref=${RELEASE_BRANCH}")
   fi
+  for url in "${urls[@]}"; do
+    rm -f -- "${part}"
+    status=0
+    if ! download_url_to "${url}" "${part}"; then
+      status=1
+    elif [ -n "${expected}" ] \
+      && [ "$(sha256_file "${part}" 2>/dev/null || true)" != "${expected}" ]; then
+      warn "下载源返回的文件校验不匹配，丢弃并尝试下一个下载源"
+      status=1
+    fi
+    if [ "${status}" -eq 0 ]; then
+      mv -f -- "${part}" "${dst}" || return 1
+      return 0
+    fi
+  done
+  rm -f -- "${part}"
+  return 1
+}
+
+# GitHub Release 资产的候选 URL：国内镜像模式下先走代理前缀（gh-proxy 与 GitHub 是
+# 同一个 URL），再回落直连。代理只负责可达性，摘要校验在 download_release_file 里做。
+release_url_candidates() {
+  local url="$1"
+  if [ -n "${GH_PROXY_BASE}" ]; then
+    printf '%s\n' "${GH_PROXY_BASE%/}/${url}"
+  fi
+  printf '%s\n' "${url}"
+}
+
+# 下载 GitHub Release 资产（cakebox 二进制、sing-box 压缩包）。逐个候选尝试，curl
+# 失败或摘要不匹配就换下一个：代理返回的任何非预期内容都不会落地。
+download_release_file() {
+  local url="$1" dst="$2" expected="${3:-}" label="${4:-下载文件}" candidate status=0
+  local part="${dst}.release-download.$$"
+  while IFS= read -r candidate; do
+    [ -n "${candidate}" ] || continue
+    rm -f -- "${part}"
+    status=0
+    download_url_to "${candidate}" "${part}" || status=1
+    if [ "${status}" -eq 0 ] && [ -n "${expected}" ] \
+      && [ "$(sha256_file "${part}" 2>/dev/null || true)" != "${expected}" ]; then
+      warn "${label}下载源返回的文件校验不匹配，丢弃并尝试下一个下载源"
+      status=1
+    fi
+    if [ "${status}" -eq 0 ]; then
+      mv -f -- "${part}" "${dst}" || return 1
+      return 0
+    fi
+  done < <(release_url_candidates "${url}")
+  rm -f -- "${part}"
+  return 1
 }
 
 # 发布仓库里当前平台目录的状态。三种结果必须分开，因为处置方式完全不同：
@@ -311,10 +429,114 @@ download_repo_file() {
 # 旧实现把这三件事混进一个命令替换里：asset_name_for_version 的 die 只结束了子 shell，
 # 调用方紧接着又按「GitHub API 不可达」重复 die 一次，用户同时看到 curl 的 404 和一句
 # 错误的限流提示，无法判断真正的失败原因（Armbian/aarch64 装机实测）。
+# 锚点提交的清单：国内镜像按不可变提交取内容，不受分支清单缓存影响。国内服务器通常访问
+# 不到 api.github.com，这个来源是「没有外网也要拿到至少锚点当时最新版」的最后一道兜底。
+sums_lookup_mirror_anchor() {
+  local dst="$1" base
+  [ -n "${INSTALLER_ANCHOR_REF}" ] || return 1
+  [ -n "${RELEASE_MIRROR_BASE}" ] || return 1
+  case "${RELEASE_MIRROR_BASE}" in
+    *@*) ;;
+    *) return 1 ;;
+  esac
+  command -v curl >/dev/null 2>&1 || return 1
+  base="${RELEASE_MIRROR_BASE%/}"
+  base="${base%@*}"
+  download_url_to "${base}@${INSTALLER_ANCHOR_REF}/${RELEASE_SUMS_PATH}" "${dst}" 2>/dev/null || return 1
+  [ -s "${dst}" ]
+}
+
+# 国内镜像对 `@分支`（如 @main）的清单存在缓存窗口（stale-while-revalidate 以小时计）。
+# 清单落后时「最新稳定版」会被静默解析成上一个版本，甚至查不到目标版本的校验值，而下载与
+# 校验都会成功，所以不会触发任何回退。下面几个函数只解决这一件事：镜像清单缺失或落后时
+# best-effort 再要一份 GitHub 清单；拿不到（无外网、超时、限流）就维持镜像结果。
+sums_lookup_github() {
+  local dst="$1" url
+  command -v curl >/dev/null 2>&1 || return 1
+  for url in \
+    "https://raw.githubusercontent.com/${RELEASE_REPO}/${RELEASE_BRANCH}/${RELEASE_SUMS_PATH}" \
+    "https://api.github.com/repos/${RELEASE_REPO}/contents/${RELEASE_SUMS_PATH}?ref=${RELEASE_BRANCH}"; do
+    if download_url_to "${url}" "${dst}" 2>/dev/null; then
+      [ ! -s "${dst}" ] || return 0
+    fi
+  done
+  return 1
+}
+
+# 只有「清单取自国内镜像、且没有 GitHub token」时才需要上面那份兜底。
+sums_mirror_may_be_stale() {
+  [ -n "${RELEASE_MIRROR_BASE}" ] && [ -z "${GITHUB_TOKEN:-}" ] && [ -z "${GH_TOKEN:-}" ]
+}
+
+# 从清单里取某个资产的校验值；缺失或不是 64 位十六进制时输出空串。
+sums_sha256_for() {
+  local sums_file="$1" asset_path="$2" expected
+  expected="$(awk -v wanted="${asset_path}" '$2 == wanted { print $1; exit }' "${sums_file}" 2>/dev/null || true)"
+  expected="$(printf '%s' "${expected}" | tr 'A-F' 'a-f')"
+  if [ "${#expected}" -ne 64 ] || [[ "${expected}" == *[!0-9a-f]* ]]; then
+    return 0
+  fi
+  printf '%s' "${expected}"
+}
+
+# 从一份 SHA256SUMS 里挑出该平台的最新版本资产名；没有可选项时返回非 0。
+latest_asset_from_sums() {
+  local sums_file="$1" prefix="$2" names name=""
+  [ -s "${sums_file}" ] || return 1
+  names="$(awk -v platform="${RELEASE_PLATFORM}/" '
+    index($2, platform) == 1 {
+      name = $2
+      sub(/^.*\//, "", name)
+      print name
+    }
+  ' "${sums_file}" 2>/dev/null || true)"
+  [ -n "${names}" ] || return 1
+  if [ "${ALLOW_PRERELEASE}" = "1" ]; then
+    name="$(printf '%s\n' "${names}" \
+      | grep -E "^${prefix}-[0-9][0-9A-Za-z._-]*-${RELEASE_PLATFORM}$" \
+      | sort -V \
+      | tail -n 1 || true)"
+  else
+    name="$(printf '%s\n' "${names}" \
+      | grep -E "^${prefix}-[0-9]+\.[0-9]+\.[0-9]+-${RELEASE_PLATFORM}$" \
+      | sort -V \
+      | tail -n 1 || true)"
+  fi
+  [ -n "${name}" ] || return 1
+  printf '%s' "${name}"
+}
+
+# 候选版本是否比当前版本更新（入参是资产名，sort -V 直接按内嵌版本号比较）。
+version_is_newer() {
+  local candidate="$1" current="$2"
+  [ "${candidate}" != "${current}" ] || return 1
+  [ "$(printf '%s\n%s\n' "${current}" "${candidate}" | sort -V | tail -n 1)" = "${candidate}" ]
+}
+
+# 发布清单里到底有没有当前平台的官方资产。国内镜像可达时这条路径完全不依赖
+# api.github.com；下载成功但没有该平台条目就是权威的 missing，不能退化成
+# 「网络不可达」的瞬时故障提示。
+platform_state_from_sums() {
+  local sums_file name
+  sums_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-sums.XXXXXX")" || return 1
+  if ! download_repo_file "${RELEASE_SUMS_PATH}" "${sums_file}"; then
+    rm -f -- "${sums_file}"
+    return 1
+  fi
+  name="$(latest_asset_from_sums "${sums_file}" cakebox || true)"
+  rm -f -- "${sums_file}"
+  if [ -n "${name}" ]; then printf 'ok'; else printf 'missing'; fi
+}
+
 release_platform_state() {
   local url="https://api.github.com/repos/${RELEASE_REPO}/contents/${RELEASE_PLATFORM}?ref=${RELEASE_BRANCH}"
   local args=(-s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30)
   local status=""
+  # 国内镜像优先：拿到清单就能判定，不需要 api.github.com。
+  if [ -n "${RELEASE_MIRROR_BASE}" ]; then
+    status="$(platform_state_from_sums 2>/dev/null || true)"
+    [ -z "${status}" ] || { printf '%s' "${status}"; return 0; }
+  fi
   if [ -n "${GITHUB_TOKEN:-}" ]; then
     args+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
   elif [ -n "${GH_TOKEN:-}" ]; then
@@ -375,7 +597,42 @@ asset_name_for_version() {
     return 0
   fi
   command -v curl >/dev/null 2>&1 || return 1
-  local name listing
+  local name listing sums_file github_file github_name anchor_file anchor_name
+  # 清单优先：国内镜像可达时完全不依赖 api.github.com（国内服务器常态）。
+  sums_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-assets.XXXXXX")" || return 1
+  if download_repo_file "${RELEASE_SUMS_PATH}" "${sums_file}"; then
+    name="$(latest_asset_from_sums "${sums_file}" "${prefix}" || true)"
+    rm -f -- "${sums_file}"
+    if [ -n "${name}" ]; then
+      # 镜像清单落后时按 GitHub 清单里更新的版本走；下载路径仍是镜像优先。
+      if sums_mirror_may_be_stale; then
+        github_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-GitHub-SHA256SUMS.XXXXXX")"
+        if sums_lookup_github "${github_file}"; then
+          github_name="$(latest_asset_from_sums "${github_file}" "${prefix}" || true)"
+          if [ -n "${github_name}" ] && version_is_newer "${github_name}" "${name}"; then
+            printf '%s\n' "${yellow}注意:${reset} 国内镜像的发布清单尚未刷新（镜像最新 ${name}，GitHub 最新 ${github_name}），已按 GitHub 清单选择版本；下载仍优先使用国内镜像" >&2
+            name="${github_name}"
+          fi
+        fi
+        rm -f -- "${github_file}"
+        # 国内服务器通常访问不到 api.github.com，锚点提交的不可变清单是这一侧的兜底。
+        anchor_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-Anchor-SHA256SUMS.XXXXXX")"
+        if sums_lookup_mirror_anchor "${anchor_file}"; then
+          anchor_name="$(latest_asset_from_sums "${anchor_file}" "${prefix}" || true)"
+          if [ -n "${anchor_name}" ] && version_is_newer "${anchor_name}" "${name}"; then
+            printf '%s\n' "${yellow}注意:${reset} 国内镜像的分支清单尚未刷新（镜像最新 ${name}，锚点提交清单最新 ${anchor_name}），已按锚点清单选择版本；下载仍优先使用国内镜像" >&2
+            name="${anchor_name}"
+          fi
+        fi
+        rm -f -- "${anchor_file}"
+      fi
+      printf '%s' "${name}"
+      return 0
+    fi
+  else
+    rm -f -- "${sums_file}"
+  fi
+  # 兜底：清单不可得时按 GitHub 目录列表解析。
   listing="$(github_api_get "https://api.github.com/repos/${RELEASE_REPO}/contents/${RELEASE_PLATFORM}?ref=${RELEASE_BRANCH}" 2>/dev/null)" || listing=""
   name="$(printf '%s\n' "${listing}" \
     | sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
@@ -464,7 +721,9 @@ download_cakebox() {
     # 已由子 shell 打到 stderr。先取摘要再下载：期望值都拿不到就不必浪费带宽。
     expected="$(repo_asset_sha256 "${RELEASE_PLATFORM}/${asset}")" \
       || die "无法取得 cakebox 二进制的官方 SHA-256，已拒绝安装未经校验的二进制"
-    if ! download_repo_file "${RELEASE_PLATFORM}/${asset}" "${candidate}"; then
+    # 把 expected 交给 download_repo_file：镜像/raw/API 三个候选逐个校验，只有摘要
+    # 匹配的那一份会被保留，镜像返回被篡改或过期的内容不会落地。
+    if ! download_repo_file "${RELEASE_PLATFORM}/${asset}" "${candidate}" "${expected}"; then
       rm -f -- "${candidate}"
       die "下载 cakebox 二进制失败：${RELEASE_PLATFORM}/${asset}"
     fi
@@ -687,16 +946,34 @@ require_file_sha256() {
 # 条目格式由 write_sha256 的 `sed 's#  \./#  #'` 决定，第二列正是
 # "<platform>/<asset>"，与这里传入的 asset_path 一致。
 repo_asset_sha256() {
-  local asset_path="$1" sums_file expected
+  local asset_path="$1" sums_file expected github_file anchor_file
   sums_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-SHA256SUMS.XXXXXX")" \
     || die "无法创建临时文件以下载 SHA256SUMS"
-  if ! download_repo_file "SHA256SUMS" "${sums_file}"; then
+  if ! download_repo_file "${RELEASE_SUMS_PATH}" "${sums_file}"; then
     rm -f -- "${sums_file}"
     die "发布仓库 ${RELEASE_REPO} 缺少可下载的 SHA256SUMS，已拒绝安装未经校验的官方二进制"
   fi
-  expected="$(awk -v wanted="${asset_path}" '$2 == wanted { print $1; exit }' "${sums_file}")"
+  expected="$(sums_sha256_for "${sums_file}" "${asset_path}")"
+  # 镜像清单落后时，本条目的校验值可能在 GitHub/锚点清单里；拿不到新版本就落到
+  # 目标版本发布时的清单，仍然 fail-closed（三份清单都没有就报错，绝不放行）。
+  if [ -z "${expected}" ] && sums_mirror_may_be_stale; then
+    github_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-SHA256SUMS.github.XXXXXX")"
+    if sums_lookup_github "${github_file}"; then
+      expected="$(sums_sha256_for "${github_file}" "${asset_path}")"
+      [ -z "${expected}" ] || printf '%s\n' "${yellow}注意:${reset} 国内镜像的发布清单尚未刷新，${asset_path} 的校验值取自 GitHub" >&2
+    fi
+    rm -f -- "${github_file}"
+    if [ -z "${expected}" ]; then
+      anchor_file="$(mktemp "${TMPDIR:-/tmp}/cakebox-SHA256SUMS.anchor.XXXXXX")"
+      if sums_lookup_mirror_anchor "${anchor_file}"; then
+        expected="$(sums_sha256_for "${anchor_file}" "${asset_path}")"
+        [ -z "${expected}" ] || printf '%s\n' "${yellow}注意:${reset} 国内镜像的分支清单尚未刷新，${asset_path} 的校验值取自锚点提交的清单" >&2
+      fi
+      rm -f -- "${anchor_file}"
+    fi
+  fi
   rm -f -- "${sums_file}"
-  if [ "${#expected}" -ne 64 ] || [[ "${expected}" == *[!0-9A-Fa-f]* ]]; then
+  if [ -z "${expected}" ]; then
     die "SHA256SUMS 中缺少 ${asset_path} 的有效校验值，已拒绝安装"
   fi
   printf '%s' "${expected}"
@@ -798,6 +1075,8 @@ download_sidecar() {
       expected_binary_sha256="${OFFICIAL_SIDECAR_BIN_SHA256}"
     fi
   else
+    # 官方 GitHub Release 资产：国内镜像模式下经 GH_PROXY_BASE 代理加速，仍然按
+    # CakeBox 内置 requirement 的摘要逐字节校验。
     url="https://github.com/SagerNet/sing-box/releases/download/v${SING_BOX_VERSION}/${SIDECAR_ARCHIVE_NAME}"
     expected_archive_sha256="${OFFICIAL_SIDECAR_ARCHIVE_SHA256}"
     expected_binary_sha256="${OFFICIAL_SIDECAR_BIN_SHA256}"
@@ -813,7 +1092,13 @@ download_sidecar() {
   tmp="$(mktemp -d)"
   archive="${tmp}/${SIDECAR_ARCHIVE_NAME}"
   log "下载 sing-box sidecar：${url}"
-  curl -fL "${url}" -o "${archive}"
+  if [ -n "${SING_BOX_DOWNLOAD_URL}" ]; then
+    download_url_to "${url}" "${archive}" \
+      || die "下载 sing-box 失败：${url}"
+  else
+    download_release_file "${url}" "${archive}" "${expected_archive_sha256}" "sing-box 压缩包" \
+      || die "下载 sing-box 失败：${url}"
+  fi
   require_file_sha256 "${archive}" "${expected_archive_sha256}" "sing-box 下载压缩包" >/dev/null
   validate_sidecar_archive_members "${archive}"
   tar -xzf "${archive}" -C "${tmp}"
@@ -1288,6 +1573,8 @@ if [ "${CAKEBOX_INSTALLER_SOURCE_ONLY:-0}" = "1" ]; then
   return 0 2>/dev/null || exit 0
 fi
 
+# 校验国内镜像/代理配置并推导默认代理前缀（不写文件、不联网），再按命令分派。
+init_release_sources
 cmd="${1:-menu}"
 case "${cmd}" in
   install) install_service ;;
