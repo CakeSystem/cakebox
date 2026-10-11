@@ -20,8 +20,10 @@
 ## 安装
 
 ```bash
-CAKEBOX_TOKEN='你的隧道令牌' bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
+bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
 ```
+
+装好后用浏览器打开安装结果显示的地址，先设置管理员账号，再在「令牌」页面粘贴 HashCake 签发的隧道加密令牌即可完成接入（命令行传令牌的方式仍保留，但不推荐）。
 
 ## 国内服务器
 
