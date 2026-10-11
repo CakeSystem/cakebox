@@ -853,8 +853,27 @@ resolve_sidecar_requirement() {
   local schema detected_platform
   [ -x "${BIN_PATH}" ] \
     || die "CakeBox 二进制尚未安装，无法确定 sidecar 完整性要求：${BIN_PATH}"
-  SIDECAR_REQUIREMENT_JSON="$("${BIN_PATH}" sidecar-requirement 2>/dev/null)" \
-    || die "无法从已安装的 CakeBox 读取 sidecar requirement：${BIN_PATH}"
+  # 失败时把二进制的真实报错带出来：最常见的两类原因是 GLIBC 过旧（例如
+  # Ubuntu 20.04 / glibc 2.31，而 arm64 发布包要求 2.32+）与文件系统不支持
+  # O_TMPFILE。只说「无法读取 requirement」会让用户误以为安装器坏了。
+  local requirement_err
+  if ! SIDECAR_REQUIREMENT_JSON="$("${BIN_PATH}" sidecar-requirement 2>&1)"; then
+    requirement_err="${SIDECAR_REQUIREMENT_JSON}"
+    SIDECAR_REQUIREMENT_JSON=""
+    case "${requirement_err}" in
+      *GLIBC_*)
+        die "无法运行已安装的 CakeBox：${BIN_PATH}
+系统 GLIBC 过旧，不满足本发布包要求（Ubuntu 22.04+ / Debian 12+）。
+原始错误：${requirement_err}" ;;
+      *O_TMPFILE*|*"Operation not supported"*)
+        die "无法运行已安装的 CakeBox：${BIN_PATH}
+当前文件系统不支持 O_TMPFILE，请把安装目录放到 ext4/xfs 本地磁盘。
+原始错误：${requirement_err}" ;;
+      *)
+        die "无法从已安装的 CakeBox 读取 sidecar requirement：${BIN_PATH}
+原始错误：${requirement_err}" ;;
+    esac
+  fi
   schema="$(json_u32_field "${SIDECAR_REQUIREMENT_JSON}" schema_version)"
   [ "${schema}" = "1" ] || die "不支持的 sidecar requirement schema：${schema}"
 
