@@ -1,21 +1,14 @@
-# CakeBox v0.1.8
+# CakeBox v0.1.9
 
-本版本提供 Linux AMD64、Linux ARM64 与 Windows x64。
+本版本提供以下平台的 CakeBox 矿场端发布包：
 
-## 更新内容
-
-- 不再需要单独安装和更新 cakebox-noise，相关功能已内置在 CakeBox 主程序中，可在 CakeBox 后台本地开启或关闭。
-- 后台支持深色、浅色和跟随系统主题，登录页同样可选。
-- 优化后台按钮、弹窗和键盘操作，手机上更容易点按。
-- 修复设置保存、前缀修改、更新页登录后不刷新等问题。
-- 改善异常连接的清理，减少矿机长时间占用接入名额。
-
-## 升级说明
-
-- 需要与 HashCake v0.1.11 配合使用，才能在 HashCake 后台看到 CakeBox 的混淆状态；只升级一端不影响矿机连接。
-- Linux 用户使用安装脚本的 `update` 更新，原有配置、Web 端口、访问路径和令牌会保留。
-- 旧版本留下的 cakebox-noise 文件不再使用，可以手动删除。
-- Windows 下载同版本程序替换更新。系统可能提示发布者不受信任，请按本机或组织的策略处理。
+- cakebox-0.1.9-linux-amd64：linux-amd64（x86_64 服务器） 主程序。
+- cakebox-sidecar-requirement-0.1.9-linux-amd64.json：linux-amd64（x86_64 服务器） 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
+- cakebox-0.1.9-linux-arm64：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- cakebox-sidecar-requirement-0.1.9-linux-arm64.json：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
+- cakebox-0.1.9-windows.exe：Windows x64 主程序。
+- cakebox-sidecar-requirement-0.1.9-windows.json：Windows x64 固化的 sing-box 版本、平台、官方 archive 与 binary SHA-256 契约。
+Release 资产包含已内置混淆引擎的 CakeBox 二进制文件与 sidecar requirement JSON。混淆开关由 CakeBox 本地后台控制。安装脚本位于仓库根目录 `install.sh`，会自动识别当前主机的 CPU 架构。
 
 ## 安装
 
@@ -23,14 +16,18 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
 ```
 
-装好后用浏览器打开安装结果显示的地址，先设置管理员账号，再在「令牌」页面粘贴 HashCake 签发的隧道加密令牌即可完成接入（命令行传令牌的方式仍保留，但不推荐）。
+首次安装会随机生成 CakeBox Web 端口、安全访问路径和 Web访问令牌。Web 默认绑定 `0.0.0.0`，方便矿场局域网访问。装好后在浏览器打开安装结果里打印的地址，先设置管理员账号，再在「令牌」页面粘贴 HashCake 签发的隧道加密令牌即可完成接入。
 
 ### 国内服务器
 
-无法稳定访问 GitHub 的服务器使用下面的通用管理入口。不带动作启动时进入管理菜单；镜像清单缓存可能滞后，安装器会与 GitHub 清单比对后按更新的版本安装，下载仍优先使用国内镜像：
+无法稳定访问 GitHub 的服务器使用下面的通用管理入口。不带动作启动时进入管理菜单，在菜单中选择安装或更新时会自动查找最新稳定版并按 SHA256SUMS 校验；镜像清单缓存可能滞后，安装器会与 GitHub 清单比对后按更新的版本安装，下载仍优先使用国内镜像：
 
 ```bash
 CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@3ebf55609c495af7e2d9429ee4f3ecabece6d7ef/install.sh)
 ```
 
 sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
+
+## 配套项目
+
+- HashCake：https://github.com/hashultra/hashcake
