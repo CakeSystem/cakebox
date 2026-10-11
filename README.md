@@ -16,7 +16,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/insta
 
 安装脚本会自动下载程序、安装 sidecar 依赖、写入并启动 systemd 服务，并打印后台地址、安全访问路径和 Web访问令牌。**隧道加密令牌请到后台网页里填写**（见下一节），不需要在命令行里传。
 
-运行要求：Linux amd64 或 arm64、GLIBC 2.34 或更高（Ubuntu 22.04+ / Debian 12+；构建管线已对齐 2.31 底线，下次重编后 Ubuntu 20.04 / Armbian 可用）、systemd 240 或更高、root 权限，安装目录所在文件系统需支持 `O_TMPFILE`（ext4/xfs 等本地磁盘）。
+运行要求：Linux amd64 或 arm64、GLIBC 2.31 或更高（Ubuntu 20.04+ / Debian 11+ / Armbian 均可；0.1.9 起两个 Linux 架构都改用固定 Zig 编译，实测最高只要求 GLIBC 2.30）、systemd 240 或更高、root 权限，安装目录所在文件系统需支持 `O_TMPFILE`（ext4/xfs 等本地磁盘）。
 
 如果服务器不能使用 `bash <(...)`，也可以分两步：
 
@@ -65,7 +65,7 @@ sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash ins
 Windows amd64 版本可在 Release 页面下载：
 
 ```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.8/cakebox-0.1.8-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.9/cakebox-0.1.9-windows.exe
 ```
 
 ## 默认路径
@@ -93,12 +93,12 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.8/cakebox-0.1.8-wind
 
 ## 发布文件
 
-- \`linux-amd64/cakebox-0.1.8-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
-- \`linux-amd64/cakebox-sidecar-requirement-0.1.8-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`linux-arm64/cakebox-0.1.8-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- \`linux-arm64/cakebox-sidecar-requirement-0.1.8-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`windows/cakebox-0.1.8-windows.exe\`：Windows x64 主程序。
-- \`windows/cakebox-sidecar-requirement-0.1.8-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-amd64/cakebox-0.1.9-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
+- \`linux-amd64/cakebox-sidecar-requirement-0.1.9-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-arm64/cakebox-0.1.9-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- \`linux-arm64/cakebox-sidecar-requirement-0.1.9-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`windows/cakebox-0.1.9-windows.exe\`：Windows x64 主程序。
+- \`windows/cakebox-sidecar-requirement-0.1.9-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
 - `install.sh`：仓库根目录的一键安装和管理脚本。
 - Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
