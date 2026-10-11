@@ -16,7 +16,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/insta
 
 安装脚本会自动下载程序、安装 sidecar 依赖、写入并启动 systemd 服务，并打印后台地址、安全访问路径和 Web访问令牌。**隧道加密令牌请到后台网页里填写**（见下一节），不需要在命令行里传。
 
-运行要求：Linux amd64 或 arm64、GLIBC 2.34 或更高（Ubuntu 22.04+ / Debian 12+；Ubuntu 20.04 的 2.31 会因 `GLIBC_2.34 not found` 无法启动）、systemd 240 或更高、root 权限，安装目录所在文件系统需支持 `O_TMPFILE`（ext4/xfs 等本地磁盘）。
+运行要求：Linux amd64 或 arm64、GLIBC 2.34 或更高（Ubuntu 22.04+ / Debian 12+；构建管线已对齐 2.31 底线，下次重编后 Ubuntu 20.04 / Armbian 可用）、systemd 240 或更高、root 权限，安装目录所在文件系统需支持 `O_TMPFILE`（ext4/xfs 等本地磁盘）。
 
 如果服务器不能使用 `bash <(...)`，也可以分两步：
 
