@@ -23,6 +23,16 @@ curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh -
 sudo bash install-cakebox.sh install
 ```
 
+### 国内服务器
+
+无法稳定访问 GitHub 的服务器使用下面的通用管理入口。该命令不绑定当前已安装版本；不带动作启动时进入管理菜单，在菜单中选择安装或更新时会自动查找最新稳定版并按 SHA256SUMS 校验：
+
+```bash
+CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@93bc3af676386e2c82bbc09de11b1d14a53ebe4d/install.sh)
+```
+
+国内镜像的清单缓存可能滞后：安装器会在解析版本时与 GitHub 清单比对，镜像落后时按更新的版本安装，下载仍优先使用国内镜像。sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
+
 ## 更新程序
 
 ```bash
@@ -78,16 +88,6 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.8/cakebox-0.1.8-wind
 - `SIDECAR_BIN_SHA256=64位十六进制`：授权一个精确的定制 sidecar binary，安装后会持久化到 systemd 运行参数。
 - `CAKEBOX_WEB_BIND=0.0.0.0:12345`：首次安装或修改 Web 设置时指定后台监听地址。
 - `CAKEBOX_URL_PREFIX=mirage`：首次安装或修改 Web 设置时指定安全访问路径。
-
-## 国内服务器
-
-无法稳定访问 GitHub 的服务器使用下面的通用管理入口。该命令不绑定当前已安装版本；不带动作启动时进入管理菜单，在菜单中选择安装或更新时会自动查找最新稳定版并按 SHA256SUMS 校验：
-
-```bash
-CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@93bc3af676386e2c82bbc09de11b1d14a53ebe4d/install.sh)
-```
-
-国内镜像的清单缓存可能滞后：安装器会在解析版本时与 GitHub 清单比对，镜像落后时按更新的版本安装，下载仍优先使用国内镜像。sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
 
 ## 发布文件
 
