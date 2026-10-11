@@ -1295,15 +1295,16 @@ install_service() {
   write_service
   systemctl enable "${SERVICE_NAME}.service"
 
+  # 没有令牌也要把服务起起来：二进制在缺 state.json 时会进入 web-only
+  # first-run 模式（cakebox/src/listener.rs），只开后台、矿机入口保持关闭，
+  # 用户先打开后台在网页里填令牌即可。旧逻辑直接 return 不启动，却照样打印
+  # 访问地址，用户按地址访问只会得到「拒绝连接」。
   if [ ! -s "${STATE_DIR}/state.json" ]; then
     mapfile -t maybe_tokens < <(token_args_from_input)
     if [ "${#maybe_tokens[@]}" -gt 0 ]; then
       install_token "${maybe_tokens[@]}"
     else
-      warn "还没有安装隧道加密令牌；服务已准备好，但不会自动启动"
-      show_paths
-      print_install_result
-      return
+      warn "还没有安装隧道加密令牌；先启动后台，请在网页里粘贴隧道加密令牌完成接入"
     fi
   fi
 
@@ -1327,10 +1328,9 @@ update_service() {
   write_service
   systemctl enable "${SERVICE_NAME}.service"
 
+  # 同 install：缺令牌时仍以 web-only first-run 模式启动后台，供网页补令牌。
   if [ ! -s "${STATE_DIR}/state.json" ]; then
-    warn "还没有安装隧道加密令牌；程序已更新，但不会自动启动"
-    show_paths
-    return
+    warn "还没有安装隧道加密令牌；先启动后台，请在网页里粘贴隧道加密令牌完成接入"
   fi
 
   if [ "${START_AFTER_INSTALL}" = "1" ]; then
@@ -1353,7 +1353,10 @@ EOF
 start_service() {
   need_root
   has_systemd || die "当前系统没有可用 systemd"
-  [ -s "${STATE_DIR}/state.json" ] || die "还没有安装隧道加密令牌，请先运行 install-token"
+  # 没有 state.json 也允许启动：二进制会进入 web-only first-run 模式，把后台
+  # 开起来让用户在网页里补令牌；矿机入口在此之前保持关闭。
+  [ -s "${STATE_DIR}/state.json" ] \
+    || warn "还没有安装隧道加密令牌；将以 web-only first-run 模式启动，矿机入口保持关闭"
   systemctl start "${SERVICE_NAME}.service"
   sleep 2
   status_service
@@ -1369,7 +1372,9 @@ stop_service() {
 restart_service() {
   need_root
   has_systemd || die "当前系统没有可用 systemd"
-  [ -s "${STATE_DIR}/state.json" ] || die "还没有安装隧道加密令牌，请先运行 install-token"
+  # 同 start_service：缺令牌时按 web-only first-run 启动，不阻止后台起来。
+  [ -s "${STATE_DIR}/state.json" ] \
+    || warn "还没有安装隧道加密令牌；将以 web-only first-run 模式启动，矿机入口保持关闭"
   systemctl daemon-reload
   systemctl restart "${SERVICE_NAME}.service"
   sleep 2
