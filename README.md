@@ -14,17 +14,13 @@ CakeBox 是 HashCake 的矿场端客户端。它部署在矿机所在网络中�
 bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
 ```
 
-安装时可以直接传入隧道加密令牌：
-
-```bash
-CAKEBOX_TOKEN='你的隧道加密令牌' bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh) install
-```
+安装脚本会自动下载程序、安装 sidecar 依赖、写入并启动 systemd 服务，并打印后台地址、安全访问路径和 Web访问令牌。**隧道加密令牌请到后台网页里填写**（见下一节），不需要在命令行里传。
 
 如果服务器不能使用 `bash <(...)`，也可以分两步：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/install.sh -o install-cakebox.sh
-sudo CAKEBOX_TOKEN='你的隧道加密令牌' bash install-cakebox.sh install
+sudo bash install-cakebox.sh install
 ```
 
 ## 更新程序
@@ -35,18 +31,21 @@ sudo bash install-cakebox.sh update
 
 更新会保留已有 Web 端口、安全访问路径、Web访问令牌、隧道加密令牌和状态目录。
 
-## 隧道加密令牌
+## 接入隧道加密令牌
 
-首次安装后如果还没有写入令牌：
+**推荐在后台网页里完成。** 在能访问这台机器的电脑或手机浏览器里打开安装结果中打印的地址（形如 `http://192.168.1.10:34567/cb-xxxxxxxx/`）：
+
+1. 首次打开是「CakeBox 首次设置」页：粘贴安装结果里打印的 **Web访问令牌**（损坏或丢失时可在机器上执行 `cat /opt/cakebox/state/web-token` 取回），同时设置管理员用户名和密码，点「创建账户并登录」。
+2. 登录后打开「令牌」页面，粘贴 HashCake 签发给这台机器的 **隧道加密令牌**，点「安装」。
+3. 页面提示安装成功后，矿机入口自动打开，矿机即可连接。
+
+> 注意区分两种令牌：`Web访问令牌` 是本机后台的登录凭据，只用于首次创建账户；`隧道加密令牌` 是 HashCake 签发的 `cakebox1.…` 字符串，决定矿机接入哪个矿场。后台页面会分别提示，不要填错。
+
+命令行方式仍然保留，适合没有浏览器的服务器或自动化部署，不推荐日常使用：
 
 ```bash
-sudo CAKEBOX_TOKEN='你的隧道加密令牌' bash install-cakebox.sh install-token
-```
-
-替换已有令牌需要单独执行：
-
-```bash
-sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash install-cakebox.sh replace-token
+sudo CAKEBOX_TOKEN='你的隧道加密令牌' bash install-cakebox.sh install-token     # 首次写入
+sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash install-cakebox.sh replace-token    # 替换
 ```
 
 ## Windows 下载
@@ -69,9 +68,9 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.8/cakebox-0.1.8-wind
 
 ## 环境变量
 
-- `CAKEBOX_VERSION=v0.1.0`：安装指定版本，默认从 `windows-amd64/` 文件夹选择最新版本。
+- `CAKEBOX_VERSION=v0.1.0`：安装指定版本；不指定时自动识别本机架构，并选择该平台目录下的最新版本。
 - `CAKEBOX_RELEASE_BRANCH=main`：读取发布文件的 Git 分支。
-- `CAKEBOX_TOKEN='...'`：安装时写入隧道加密令牌。
+- `CAKEBOX_TOKEN='...'`：可选。安装时直接写入隧道加密令牌；正常流程建议装好后在后台网页里填写。
 - `CAKEBOX_DOWNLOAD_URL=https://...`：从指定地址下载主程序。
 - `SING_BOX_DOWNLOAD_URL=https://...`：从自定义镜像下载 sing-box archive；必须同时提供 `SING_BOX_ARCHIVE_SHA256`。
 - `SING_BOX_ARCHIVE_SHA256=64位十六进制`：授权一个精确的自定义 sing-box archive；解压后的 binary 默认仍必须匹配 requirement 官方摘要。
