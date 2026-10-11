@@ -30,7 +30,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/insta
 无法稳定访问 GitHub 的服务器使用下面的通用管理入口。不带动作启动时进入管理菜单；镜像清单缓存可能滞后，安装器会与 GitHub 清单比对后按更新的版本安装，下载仍优先使用国内镜像：
 
 ```bash
-CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@93bc3af676386e2c82bbc09de11b1d14a53ebe4d/install.sh)
+CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@3ebf55609c495af7e2d9429ee4f3ecabece6d7ef/install.sh)
 ```
 
 sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
