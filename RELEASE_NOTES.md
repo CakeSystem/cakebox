@@ -25,7 +25,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/insta
 
 装好后用浏览器打开安装结果显示的地址，先设置管理员账号，再在「令牌」页面粘贴 HashCake 签发的隧道加密令牌即可完成接入（命令行传令牌的方式仍保留，但不推荐）。
 
-## 国内服务器
+### 国内服务器
 
 无法稳定访问 GitHub 的服务器使用下面的通用管理入口。不带动作启动时进入管理菜单；镜像清单缓存可能滞后，安装器会与 GitHub 清单比对后按更新的版本安装，下载仍优先使用国内镜像：
 
