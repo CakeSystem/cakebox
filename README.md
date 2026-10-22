@@ -1,6 +1,29 @@
 # CakeBox
 
-CakeBox 是 HashCake 的矿场端客户端。它部署在矿机所在网络中，接收矿机连接，并通过加密隧道把流量转回中心 HashCake 服务器。
+**HashCake 矿场端客户端：在矿场侧建立加密隧道，把矿机流量安全转回中心 HashCake 矿池代理。**
+
+CakeBox 部署在矿机所在网络中，接收矿机连接，并通过加密隧道把流量转回中心 HashCake 服务器。矿场与服务器跨地域、或不想把 HashCake 端口直接暴露公网时，用它把公网入口收敛到一条加密隧道；本机同时支持 amd64、arm64 和 Windows。
+
+## 适用场景
+
+- **异地矿场接入**：远端矿场只运行 CakeBox，矿机连本地入口，隧道回中心 HashCake。
+- **公网收敛**：HashCake 不必对公网开放代理端口，跨地域接入只依赖隧道入口。
+- **多矿场统一管理**：每台 CakeBox 在 HashCake 后台作为一个站点，统一查看在线状态与流量。
+- **不改变现有矿机配置**：矿机仍按本地 Stratum 地址连接，由 CakeBox 负责加密转发。
+
+## 常见问题
+
+**CakeBox 可以单独使用吗？**
+不能。CakeBox 是矿场侧客户端，需要配合中心 [HashCake 服务端](https://github.com/hashultra/hashcake) 使用。
+
+**隧道加密令牌从哪来？**
+由 HashCake 后台签发，安装后在 CakeBox 后台网页的「令牌」页面粘贴即可，不需要写进命令行。
+
+**支持哪些平台？**
+Linux amd64、Linux arm64（如 Armbian）与 Windows x64，安装器会自动识别 Linux 架构。
+
+**会不会影响矿机原有连接方式？**
+CakeBox 只做入口与加密转发，矿机仍按本地 Stratum 地址连接；更新会保留端口、安全访问路径、Web访问令牌、隧道加密令牌和状态目录。
 
 ## 配套项目
 
@@ -65,7 +88,7 @@ sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash ins
 Windows amd64 版本可在 Release 页面下载：
 
 ```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.9/cakebox-0.1.9-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.16/cakebox-0.1.16-windows.exe
 ```
 
 ## 默认路径
@@ -93,12 +116,10 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.9/cakebox-0.1.9-wind
 
 ## 发布文件
 
-- \`linux-amd64/cakebox-0.1.9-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
-- \`linux-amd64/cakebox-sidecar-requirement-0.1.9-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`linux-arm64/cakebox-0.1.9-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- \`linux-arm64/cakebox-sidecar-requirement-0.1.9-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`windows/cakebox-0.1.9-windows.exe\`：Windows x64 主程序。
-- \`windows/cakebox-sidecar-requirement-0.1.9-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-amd64/cakebox-0.1.16-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
+- \`linux-amd64/cakebox-sidecar-requirement-0.1.16-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-arm64/cakebox-0.1.16-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- \`linux-arm64/cakebox-sidecar-requirement-0.1.16-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
 - `install.sh`：仓库根目录的一键安装和管理脚本。
 - Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
