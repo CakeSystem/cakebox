@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
+# 激活令牌不能进入 bash -x 跟踪或后续子进程环境。
+{ set +ax; } 2>/dev/null
 set -Eeuo pipefail
+TOKEN_INPUT="${CAKEBOX_TOKEN:-}"
+export -n TOKEN_INPUT
+unset CAKEBOX_TOKEN
+TOKEN_INPUT_FILE="${CAKEBOX_TOKEN_FILE:-}"
+TOKEN_INPUT_SKIP=0
 
 APP_NAME="CakeBox"
 RELEASE_REPO="${CAKEBOX_RELEASE_REPO:-hashultra/cakebox}"
@@ -1181,61 +1188,115 @@ ensure_trusted_sidecar_digest() {
   TRUSTED_SIDECAR_SHA256="${expected}"
 }
 
-token_args_from_input() {
-  local raw="${CAKEBOX_TOKEN:-}"
-  if [ "$#" -gt 0 ]; then
-    printf '%s\n' "$@"
-    return
+# 参数只接受令牌文件路径；令牌内容通过隐藏终端或兼容环境变量输入。
+parse_token_options() {
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --token-file)
+        [ "$#" -ge 2 ] && [ -n "$2" ] || die "--token-file 需要文件路径"
+        [ -z "${TOKEN_INPUT_FILE}" ] || die "只能指定一个令牌文件"
+        TOKEN_INPUT_FILE="$2"
+        shift 2
+        ;;
+      --skip-token) TOKEN_INPUT_SKIP=1; shift ;;
+      *) die "不接受明文令牌参数；请使用 --token-file、CAKEBOX_TOKEN_FILE 或隐藏交互输入" ;;
+    esac
+  done
+  [ -z "${TOKEN_INPUT}" ] || [ -z "${TOKEN_INPUT_FILE}" ] \
+    || die "CAKEBOX_TOKEN 与令牌文件不能同时使用"
+  if [ "${TOKEN_INPUT_SKIP}" = "1" ]; then
+    [ -z "${TOKEN_INPUT}${TOKEN_INPUT_FILE}" ] || die "--skip-token 不能与令牌输入同时使用"
   fi
-  if [ -n "${raw}" ]; then
-    printf '%s\n' "${raw}" | tr ', ' '\n' | sed '/^[[:space:]]*$/d'
-    return
+}
+
+has_token_input() {
+  [ -n "${TOKEN_INPUT}${TOKEN_INPUT_FILE}" ]
+}
+
+collect_token_input() {
+  # 不输出令牌，不使用进程替换；错误不能变成“跳过导入”。
+  has_token_input && return 0
+  [ "${TOKEN_INPUT_SKIP}" != "1" ] || return 1
+  local tty_fd
+  if { exec {tty_fd}<>/dev/tty; } 2>/dev/null; then
+    printf '%s' "粘贴 HashCake 隧道加密令牌（输入不回显；多个用逗号分隔；留空先安装后台）: " >&"${tty_fd}"
+    IFS= read -r -s -u "${tty_fd}" TOKEN_INPUT || TOKEN_INPUT=""
+    printf '\n' >&"${tty_fd}"
+    exec {tty_fd}>&-
+  elif [ -t 0 ]; then
+    IFS= read -r -s -p "粘贴隧道加密令牌（输入不回显；留空跳过）: " TOKEN_INPUT || TOKEN_INPUT=""
+    printf '\n' >&2
   fi
-  if [ -t 0 ]; then
-    read -r -p "请输入隧道加密令牌；多个令牌用逗号分隔，留空跳过: " raw
-    [ -n "${raw}" ] && printf '%s\n' "${raw}" | tr ', ' '\n' | sed '/^[[:space:]]*$/d'
+  has_token_input
+}
+
+import_selected_token() {
+  [ -x "${BIN_PATH}" ] || die "请先安装 cakebox 二进制"
+  local flag="--token-stdin"
+  [ -z "${TOKEN_INPUT_FILE}" ] || flag="--token-file"
+  if ! "${BIN_PATH}" install --help 2>/dev/null | grep -q -- "${flag}"; then
+    TOKEN_INPUT=""
+    die "当前 CakeBox 不支持安全令牌输入，请先更新到支持 --token-stdin/--token-file 的版本"
+  fi
+  local status=0
+  if [ -n "${TOKEN_INPUT_FILE}" ]; then
+    # 二进制检查 owner-only 常规文件、拒绝 symlink 并限制大小；脚本只传路径。
+    "${BIN_PATH}" install --state "${STATE_DIR}/state.json" \
+      --token-file "${TOKEN_INPUT_FILE}" >/dev/null 2>&1 || status=$?
+  else
+    builtin printf '%s\n' "${TOKEN_INPUT}" | "${BIN_PATH}" install \
+      --state "${STATE_DIR}/state.json" --token-stdin >/dev/null 2>&1 || status=$?
+  fi
+  TOKEN_INPUT=""
+  [ "${status}" -eq 0 ] || die "令牌导入失败；请检查令牌完整性、有效期及版本。令牌文件须是当前用户所有、仅所有者可访问的非符号链接常规文件（不超过 64 KiB）"
+  ok "隧道加密令牌已保存；矿机端口将按 HashCake 配置自动同步"
+}
+
+install_initial_token() {
+  [ ! -s "${STATE_DIR}/state.json" ] || return 0
+  if collect_token_input; then
+    import_selected_token
+  else
+    warn "还没有安装隧道加密令牌；先启动后台，请在网页里粘贴隧道加密令牌完成接入"
+  fi
+}
+
+start_after_token_import() {
+  if [ "${START_AFTER_INSTALL}" = "1" ] && [ -f "${SERVICE_FILE}" ] && has_systemd; then
+    restart_service
   fi
 }
 
 install_token() {
+  parse_token_options "$@"
   [ -x "${BIN_PATH}" ] || die "请先安装 cakebox 二进制"
   [ ! -s "${STATE_DIR}/state.json" ] || die "当前已安装隧道加密令牌；如需更换请使用 replace-token"
-  mapfile -t tokens < <(token_args_from_input "$@")
-  [ "${#tokens[@]}" -gt 0 ] || die "没有输入隧道加密令牌"
-  local args=(install --state "${STATE_DIR}/state.json")
-  local token
-  for token in "${tokens[@]}"; do
-    args+=(--token "${token}")
-  done
-  "${BIN_PATH}" "${args[@]}"
-  ok "隧道加密令牌已安装到 ${STATE_DIR}/state.json"
+  collect_token_input || die "没有输入隧道加密令牌"
+  import_selected_token
+  start_after_token_import
 }
 
 replace_token() {
+  parse_token_options "$@"
   [ -x "${BIN_PATH}" ] || die "请先安装 cakebox 二进制"
   [ -s "${STATE_DIR}/state.json" ] || die "当前还没有隧道加密令牌；请先使用 install-token"
-  mapfile -t tokens < <(token_args_from_input "$@")
-  [ "${#tokens[@]}" -gt 0 ] || die "没有输入新的隧道加密令牌"
   if [ "${CONFIRM_REPLACE_TOKEN:-}" != "yes" ]; then
-    warn "替换会覆盖 ${STATE_DIR}/state.json 中现有隧道加密令牌"
-    local confirm=""
-    if [ -t 0 ]; then
-      read -r -p "输入 yes 确认替换: " confirm
+    warn "替换会覆盖现有隧道加密令牌，并重启 CakeBox 接入新配置"
+    local confirm="" tty_fd
+    if { exec {tty_fd}<>/dev/tty; } 2>/dev/null; then
+      printf '%s' "输入 yes 确认替换: " >&"${tty_fd}"
+      IFS= read -r -u "${tty_fd}" confirm || confirm=""
+      exec {tty_fd}>&-
+    elif [ -t 0 ]; then
+      IFS= read -r -p "输入 yes 确认替换: " confirm || confirm=""
     else
       die "非交互替换隧道加密令牌需要设置 CONFIRM_REPLACE_TOKEN=yes"
     fi
     [ "${confirm}" = "yes" ] || die "已取消"
   fi
-  local args=(install --state "${STATE_DIR}/state.json")
-  local token
-  for token in "${tokens[@]}"; do
-    args+=(--token "${token}")
-  done
-  "${BIN_PATH}" "${args[@]}"
-  ok "隧道加密令牌已替换到 ${STATE_DIR}/state.json"
-  if has_systemd && systemctl is-active --quiet "${SERVICE_NAME}.service"; then
-    restart_service
-  fi
+  collect_token_input || die "没有输入新的隧道加密令牌"
+  import_selected_token
+  start_after_token_import
 }
 
 write_service() {
@@ -1288,7 +1349,7 @@ print_install_result() {
 流量混淆: CakeBox 内置，在本地后台开启或关闭
 隧道 sidecar: $([ -x "${SIDECAR_PATH}" ] && sidecar_version "${SIDECAR_PATH}" || printf '未安装或版本不可识别')（要求 ${SING_BOX_VERSION}）
 CakeBox 后台地址: $(web_url)
-Web访问令牌: $([ -s "${token_file}" ] && cat "${token_file}" || printf '未生成')
+Web访问令牌: 已隐藏；需要时执行本脚本 show-web-token 查看
 Web访问令牌文件: ${token_file}
 安全访问路径: /${URL_PREFIX}/
 安装目录: ${INSTALL_DIR}
@@ -1300,6 +1361,7 @@ EOF
 }
 
 install_service() {
+  parse_token_options "$@"
   need_root
   is_installed && die "检测到已安装 CakeBox，请使用 update 更新程序"
   check_no_running_conflict
@@ -1314,23 +1376,35 @@ install_service() {
   write_service
   systemctl enable "${SERVICE_NAME}.service"
 
-  # 没有令牌也要把服务起起来：二进制在缺 state.json 时会进入 web-only
-  # first-run 模式（cakebox/src/listener.rs），只开后台、矿机入口保持关闭，
-  # 用户先打开后台在网页里填令牌即可。旧逻辑直接 return 不启动，却照样打印
-  # 访问地址，用户按地址访问只会得到「拒绝连接」。
-  if [ ! -s "${STATE_DIR}/state.json" ]; then
-    mapfile -t maybe_tokens < <(token_args_from_input)
-    if [ "${#maybe_tokens[@]}" -gt 0 ]; then
-      install_token "${maybe_tokens[@]}"
-    else
-      warn "还没有安装隧道加密令牌；先启动后台，请在网页里粘贴隧道加密令牌完成接入"
-    fi
-  fi
+  # 同一次安装可导入令牌；留空仍启动 web-only 后台，矿机入口保持关闭。
+  install_initial_token
 
   if [ "${START_AFTER_INSTALL}" = "1" ]; then
     restart_service
   else
     ok "已安装，未自动启动"
+  fi
+  print_install_result
+}
+
+# setup 是网页提供的一键入口；已有安装不自动升级，也不静默替换站点身份。
+setup_service() {
+  parse_token_options "$@"
+  if ! is_installed; then
+    install_service
+    return
+  fi
+  need_root
+  load_install_env
+  if [ -s "${STATE_DIR}/state.json" ]; then
+    if has_token_input; then
+      replace_token
+    else
+      ok "检测到已安装 CakeBox；保留现有程序和隧道加密令牌。更新程序请使用 update"
+    fi
+  else
+    install_initial_token
+    start_after_token_import
   fi
   print_install_result
 }
@@ -1607,7 +1681,8 @@ fi
 init_release_sources
 cmd="${1:-menu}"
 case "${cmd}" in
-  install) install_service ;;
+  setup) shift; setup_service "$@" ;;
+  install) shift; install_service "$@" ;;
   update) update_service ;;
   install-token) shift; install_token "$@" ;;
   replace-token) shift; replace_token "$@" ;;
@@ -1628,5 +1703,5 @@ case "${cmd}" in
   write-service) ensure_dirs; configure_web_defaults_for_update; write_service ;;
   uninstall) uninstall ;;
   menu|"") menu ;;
-  *) die "未知命令：${cmd}" ;;
+  *) die "未知命令；使用 setup、install、update 或 menu" ;;
 esac
