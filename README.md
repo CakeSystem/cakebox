@@ -39,7 +39,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/hashultra/cakebox/main/insta
 
 安装脚本会自动下载程序、安装 sidecar 依赖、写入并启动 systemd 服务，并打印后台地址、安全访问路径和 Web访问令牌。**隧道加密令牌请到后台网页里填写**（见下一节），不需要在命令行里传。
 
-运行要求：Linux amd64 或 arm64、GLIBC 2.31 或更高（Ubuntu 20.04+ / Debian 11+ / Armbian 均可；0.1.9 起两个 Linux 架构都改用固定 Zig 编译，实测最高只要求 GLIBC 2.30）、systemd 240 或更高、root 权限，安装目录所在文件系统需支持 `O_TMPFILE`（ext4/xfs 等本地磁盘）。
+运行要求：Linux amd64 或 arm64 服务器（Ubuntu 20.04+、Debian 11+、Armbian 等常见系统均可），需要 root 权限。
 
 如果服务器不能使用 `bash <(...)`，也可以分两步：
 
@@ -56,7 +56,7 @@ sudo bash install-cakebox.sh install
 CAKEBOX_RELEASE_MIRROR_BASE=https://cdn.jsdmirror.com/gh/hashultra/cakebox@main bash <(curl -fsSL https://cdn.jsdmirror.com/gh/hashultra/cakebox@3ebf55609c495af7e2d9429ee4f3ecabece6d7ef/install.sh)
 ```
 
-国内镜像的清单缓存可能滞后：安装器会在解析版本时与 GitHub 清单比对，镜像落后时按更新的版本安装，下载仍优先使用国内镜像。sing-box sidecar 走安装器内置的 GitHub 代理源，并按 CakeBox 二进制内置的 SHA-256 契约逐字节校验；校验不通过即安装失败。
+国内镜像可能略有延迟；安装器会自动与 GitHub 比对并选择更新的版本，下载仍优先使用国内镜像。
 
 ## 更新程序
 
@@ -120,12 +120,7 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.10/cakebox-0.1.10-wi
 
 ## 发布文件
 
-- \`linux-amd64/cakebox-0.1.10-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
-- \`linux-amd64/cakebox-sidecar-requirement-0.1.10-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`linux-arm64/cakebox-0.1.10-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- \`linux-arm64/cakebox-sidecar-requirement-0.1.10-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`windows/cakebox-0.1.10-windows.exe\`：Windows x64 主程序。
-- \`windows/cakebox-sidecar-requirement-0.1.10-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- `install.sh`：仓库根目录的一键安装和管理脚本。
-- Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
-- `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
+- `cakebox-0.1.10-windows.exe`：Windows x64，单文件，双击即用。
+- `cakebox-0.1.10-linux-amd64`：Linux x86_64 服务器。
+- `cakebox-0.1.10-linux-arm64`：Linux ARM64 服务器（如 Armbian）。
+- `install.sh`：Linux 一键安装和管理脚本。
