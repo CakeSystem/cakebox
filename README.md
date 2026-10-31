@@ -85,11 +85,15 @@ sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash ins
 
 ## Windows 下载
 
-Windows amd64 版本可在 Release 页面下载：
+Windows amd64 为**单文件版本**，双击即用，不需要另外下载 sing-box：
 
 ```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.16/cakebox-0.1.16-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.10/cakebox-0.1.10-windows.exe
 ```
+
+用法：把 exe 放进任意**可写**目录（如 `D:\CakeBox`），双击运行并保持窗口打开。首次启动会打印 Web 后台地址与一次性登录令牌；用该令牌设置管理员账号后，在「令牌」页面粘贴 HashCake 签发的隧道加密令牌即可接入。
+
+内置 sing-box 会在首次需要时自动解包到程序同目录（`FactoryTelemetryAgent.exe`）；目录不可写会导致启动失败，不要放在 `C:\Program Files`。内置 sing-box 为 1.13.12，GPL-3.0-or-later，上游 https://github.com/SagerNet/sing-box 。
 
 ## 默认路径
 
@@ -116,10 +120,12 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.16/cakebox-0.1.16-wi
 
 ## 发布文件
 
-- \`linux-amd64/cakebox-0.1.16-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
-- \`linux-amd64/cakebox-sidecar-requirement-0.1.16-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
-- \`linux-arm64/cakebox-0.1.16-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
-- \`linux-arm64/cakebox-sidecar-requirement-0.1.16-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-amd64/cakebox-0.1.10-linux-amd64\`：linux-amd64（x86_64 服务器） 主程序。
+- \`linux-amd64/cakebox-sidecar-requirement-0.1.10-linux-amd64.json\`：linux-amd64（x86_64 服务器） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`linux-arm64/cakebox-0.1.10-linux-arm64\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 主程序。
+- \`linux-arm64/cakebox-sidecar-requirement-0.1.10-linux-arm64.json\`：linux-arm64（aarch64 / ARM64 服务器，如 Armbian） 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
+- \`windows/cakebox-0.1.10-windows.exe\`：Windows x64 主程序。
+- \`windows/cakebox-sidecar-requirement-0.1.10-windows.json\`：Windows x64 的 sing-box sidecar schema、平台、版本与双 SHA-256 契约。
 - `install.sh`：仓库根目录的一键安装和管理脚本。
 - Release 资产：上传各平台的二进制文件和已生成的签名 manifest。
 - `SHA256SUMS`：本地发布文件校验和，路径按本地发布目录记录。
