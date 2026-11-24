@@ -88,7 +88,7 @@ sudo CONFIRM_REPLACE_TOKEN=yes CAKEBOX_TOKEN='新的隧道加密令牌' bash ins
 Windows amd64 为**单文件版本**，双击即用，不需要另外下载 sing-box：
 
 ```text
-https://github.com/hashultra/cakebox/releases/download/v0.1.10/cakebox-0.1.10-windows.exe
+https://github.com/hashultra/cakebox/releases/download/v0.1.11/cakebox-0.1.11-windows.exe
 ```
 
 用法：把 exe 放进任意**可写**目录（如 `D:\CakeBox`），双击运行并保持窗口打开。首次启动会打印 Web 后台地址与一次性登录令牌；用该令牌设置管理员账号后，在「令牌」页面粘贴 HashCake 签发的隧道加密令牌即可接入。
@@ -120,7 +120,7 @@ https://github.com/hashultra/cakebox/releases/download/v0.1.10/cakebox-0.1.10-wi
 
 ## 发布文件
 
-- `cakebox-0.1.10-windows.exe`：Windows x64，单文件，双击即用。
-- `cakebox-0.1.10-linux-amd64`：Linux x86_64 服务器。
-- `cakebox-0.1.10-linux-arm64`：Linux ARM64 服务器（如 Armbian）。
+- `cakebox-0.1.11-windows.exe`：Windows x64，单文件，双击即用。
+- `cakebox-0.1.11-linux-amd64`：Linux x86_64 服务器。
+- `cakebox-0.1.11-linux-arm64`：Linux ARM64 服务器（如 Armbian）。
 - `install.sh`：Linux 一键安装和管理脚本。
